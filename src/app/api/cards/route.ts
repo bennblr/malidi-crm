@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { calculateCardPriority } from '@/utils/priority'
 import { sendNotification, logCardHistory } from '@/lib/notifications'
-import dayjs from 'dayjs'
+import dayjs from '@/lib/dayjs-config'
 
 export async function GET(request: NextRequest) {
   try {

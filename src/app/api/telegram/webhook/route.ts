@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { parseTelegramMessage } from '@/utils/parser'
 import { likeMessage, sendErrorMessageWithTags } from '@/lib/telegram'
-import dayjs from 'dayjs'
+import dayjs from '@/lib/dayjs-config'
 
 // Обработка GET запроса для проверки webhook
 export async function GET() {

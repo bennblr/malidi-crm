@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { observer } from 'mobx-react-lite'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Modal, Form, Input, DatePicker, Button, Tag, message } from 'antd'
-import dayjs from 'dayjs'
+import { Modal, Form, Input, DatePicker, Button, Tag, message, Descriptions } from 'antd'
+import { EditOutlined } from '@ant-design/icons'
+import dayjs from '@/lib/dayjs-config'
 import { boardStore } from '@/stores/boardStore'
 import { CardWithRelations } from '@/stores/boardStore'
 import styles from './Card.module.css'
@@ -16,6 +17,7 @@ interface CardProps {
 
 function Card({ card }: CardProps) {
   const [isModalVisible, setIsModalVisible] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(false)
   const [form] = Form.useForm()
   const {
     setNodeRef,
@@ -39,6 +41,8 @@ function Card({ card }: CardProps) {
   }
 
   const handleCardClick = () => {
+    // При открытии модального окна всегда начинаем с режима просмотра
+    setIsEditMode(false)
     form.setFieldsValue({
       instruments: card.instruments,
       deliveryAddress: card.deliveryAddress,
@@ -52,6 +56,27 @@ function Card({ card }: CardProps) {
         : null,
     })
     setIsModalVisible(true)
+  }
+
+  const handleEditClick = () => {
+    setIsEditMode(true)
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditMode(false)
+    // Восстанавливаем значения из карточки
+    form.setFieldsValue({
+      instruments: card.instruments,
+      deliveryAddress: card.deliveryAddress,
+      contacts: card.contacts,
+      organization: card.organization,
+      shippingDate: card.shippingDate ? dayjs(card.shippingDate) : null,
+      notes: card.notes,
+      postalOrder: card.postalOrder,
+      executionDeadline: card.executionDeadline
+        ? dayjs(card.executionDeadline)
+        : null,
+    })
   }
 
   const handleSave = async () => {
@@ -72,7 +97,8 @@ function Card({ card }: CardProps) {
           : null,
       })
       message.success('Карточка обновлена')
-      setIsModalVisible(false)
+      setIsEditMode(false)
+      // Не закрываем модальное окно, остаемся в режиме просмотра
     } catch (error) {
       console.error('Error updating card:', error)
     }
@@ -117,45 +143,122 @@ function Card({ card }: CardProps) {
       </div>
 
       <Modal
-        title="Редактировать карточку"
+        title={isEditMode ? 'Редактировать карточку' : 'Просмотр карточки'}
         open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
-        footer={[
-          <Button key="cancel" onClick={() => setIsModalVisible(false)}>
-            Отмена
-          </Button>,
-          <Button key="save" type="primary" onClick={handleSave}>
-            Сохранить
-          </Button>,
-        ]}
-        width={600}
+        onCancel={() => {
+          setIsModalVisible(false)
+          setIsEditMode(false)
+        }}
+        footer={
+          isEditMode
+            ? [
+                <Button key="cancel" onClick={handleCancelEdit}>
+                  Отмена
+                </Button>,
+                <Button key="save" type="primary" onClick={handleSave}>
+                  Сохранить
+                </Button>,
+              ]
+            : [
+                <Button key="close" onClick={() => setIsModalVisible(false)}>
+                  Закрыть
+                </Button>,
+                <Button
+                  key="edit"
+                  type="primary"
+                  icon={<EditOutlined />}
+                  onClick={handleEditClick}
+                >
+                  Редактировать
+                </Button>,
+              ]
+        }
+        width={700}
       >
-        <Form form={form} layout="vertical">
-          <Form.Item label="Организация" name="organization">
-            <Input />
-          </Form.Item>
-          <Form.Item label="Приборы" name="instruments">
-            <Input.TextArea rows={3} />
-          </Form.Item>
-          <Form.Item label="Адрес доставки" name="deliveryAddress">
-            <Input.TextArea rows={2} />
-          </Form.Item>
-          <Form.Item label="Контакты" name="contacts">
-            <Input.TextArea rows={2} />
-          </Form.Item>
-          <Form.Item label="Дата отправки" name="shippingDate">
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item label="Примечания" name="notes">
-            <Input.TextArea rows={3} />
-          </Form.Item>
-          <Form.Item label="Почтовый ордер" name="postalOrder">
-            <Input />
-          </Form.Item>
-          <Form.Item label="Срок исполнения" name="executionDeadline">
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-        </Form>
+        {isEditMode ? (
+          <Form form={form} layout="vertical">
+            <Form.Item label="Организация" name="organization">
+              <Input />
+            </Form.Item>
+            <Form.Item label="Приборы" name="instruments">
+              <Input.TextArea rows={3} />
+            </Form.Item>
+            <Form.Item label="Адрес доставки" name="deliveryAddress">
+              <Input.TextArea rows={2} />
+            </Form.Item>
+            <Form.Item label="Контакты" name="contacts">
+              <Input.TextArea rows={2} />
+            </Form.Item>
+            <Form.Item label="Дата отправки" name="shippingDate">
+              <DatePicker
+                style={{ width: '100%' }}
+                format="DD.MM.YYYY"
+                placeholder="ДД.ММ.ГГГГ"
+              />
+            </Form.Item>
+            <Form.Item label="Примечания" name="notes">
+              <Input.TextArea rows={3} />
+            </Form.Item>
+            <Form.Item label="Почтовый ордер" name="postalOrder">
+              <Input />
+            </Form.Item>
+            <Form.Item label="Срок исполнения" name="executionDeadline">
+              <DatePicker
+                style={{ width: '100%' }}
+                format="DD.MM.YYYY"
+                placeholder="ДД.ММ.ГГГГ"
+              />
+            </Form.Item>
+          </Form>
+        ) : (
+          <Descriptions column={1} bordered>
+            <Descriptions.Item label="Приоритет">
+              <Tag color={card.priority.color}>{card.priority.name}</Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="Колонка">
+              {card.column.name}
+            </Descriptions.Item>
+            <Descriptions.Item label="Организация">
+              {card.organization}
+            </Descriptions.Item>
+            <Descriptions.Item label="Приборы">
+              {card.instruments || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Адрес доставки">
+              {card.deliveryAddress || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Контакты">
+              {card.contacts || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Дата отправки">
+              {card.shippingDate
+                ? dayjs(card.shippingDate).format('DD.MM.YYYY')
+                : '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Примечания">
+              {card.notes || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Почтовый ордер">
+              {card.postalOrder || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Срок исполнения">
+              {card.executionDeadline
+                ? dayjs(card.executionDeadline).format('DD.MM.YYYY')
+                : '-'}
+              {isDeadlineExpired && (
+                <Tag color="red" style={{ marginLeft: 8 }}>
+                  Срок истек
+                </Tag>
+              )}
+            </Descriptions.Item>
+            <Descriptions.Item label="Создано">
+              {dayjs(card.createdAt).format('DD.MM.YYYY HH:mm')}
+            </Descriptions.Item>
+            <Descriptions.Item label="Обновлено">
+              {dayjs(card.updatedAt).format('DD.MM.YYYY HH:mm')}
+            </Descriptions.Item>
+          </Descriptions>
+        )}
       </Modal>
     </>
   )

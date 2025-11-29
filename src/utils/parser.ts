@@ -42,8 +42,73 @@ export function parseTelegramMessage(message: string): ParsedCardData | null {
     for (const pattern of instrumentsPatterns) {
       const match = normalizedMessage.match(pattern)
       if (match && match[1]) {
-        result.instruments = match[1].trim().replace(/___SEPARATOR___/g, '').trim()
-        console.log('Parser: Found instruments:', result.instruments.substring(0, 100))
+        let instrumentsText = match[1].trim().replace(/___SEPARATOR___/g, '').trim()
+        
+        // Парсим серийные номера и модели из текста приборов
+        // Формат: "Алкотестер S/N: 10505217 Динго В-02" или "S/N: 10505217 Динго В-02"
+        // Может быть несколько приборов, разделенных переносами строк
+        const instruments: string[] = []
+        
+        // Разбиваем на строки (приборы могут быть разделены переносами строк)
+        const lines = instrumentsText.split(/\n+/).map(line => line.trim()).filter(line => line)
+        
+        for (const line of lines) {
+          // Паттерны для поиска серийного номера и модели
+          // Формат: "Алкотестер S/N: 10505217 Динго В-02"
+          // Или: "S/N: 10505217 Динго В-02"
+          // Или: "10505217 Динго В-02"
+          const serialPatterns = [
+            // Полный формат: "Алкотестер S/N: 10505217 Динго В-02"
+            // Ищем: тип прибора + S/N: + номер + модель
+            /^([А-Яа-яA-Za-z\s]+?)\s+(?:S\/N|S\.N\.|Серийный номер|С\/Н)[:\s]*(\d+)\s+([А-Яа-яA-Za-z0-9\s\-]+)$/i,
+            // Формат: "S/N: 10505217 Динго В-02" или "S/N 10505217 Динго В-02"
+            /^(?:S\/N|S\.N\.|Серийный номер|С\/Н)[:\s]*(\d+)\s+([А-Яа-яA-Za-z0-9\s\-]+)$/i,
+            // Формат: "10505217 Динго В-02" (только номер и модель)
+            /^(\d+)\s+([А-Яа-яA-Za-z0-9\s\-]+)$/,
+          ]
+          
+          let found = false
+          for (const pattern of serialPatterns) {
+            const serialMatch = line.match(pattern)
+            if (serialMatch) {
+              // Для первого паттерна: [0]=вся строка, [1]=тип прибора, [2]=номер, [3]=модель
+              // Для второго паттерна: [0]=вся строка, [1]=номер, [2]=модель
+              // Для третьего паттерна: [0]=вся строка, [1]=номер, [2]=модель
+              
+              if (serialMatch.length === 4) {
+                // Первый паттерн: есть тип прибора
+                const deviceType = serialMatch[1].trim()
+                const serialNumber = serialMatch[2]
+                const model = serialMatch[3].trim()
+                instruments.push(`${deviceType} S/N: ${serialNumber} ${model}`)
+              } else if (serialMatch.length === 3) {
+                // Второй или третий паттерн: только номер и модель
+                const serialNumber = serialMatch[1]
+                const model = serialMatch[2].trim()
+                instruments.push(`S/N: ${serialNumber} ${model}`)
+              }
+              found = true
+              console.log('Parser: Parsed instrument:', serialMatch[0])
+              break
+            }
+          }
+          
+          // Если не нашли паттерн, добавляем строку как есть
+          if (!found && line.length > 0) {
+            instruments.push(line)
+          }
+        }
+        
+        // Если нашли структурированные данные, используем их, иначе исходный текст
+        if (instruments.length > 0 && instruments.some(instr => instr.includes('S/N:'))) {
+          result.instruments = instruments.join('\n')
+          console.log('Parser: Found structured instruments:', instruments)
+        } else {
+          // Если не удалось распарсить структурированно, используем исходный текст
+          result.instruments = instrumentsText
+        }
+        
+        console.log('Parser: Found instruments:', result.instruments.substring(0, 200))
         break
       }
     }
