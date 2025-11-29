@@ -13,7 +13,9 @@ export function calculateCardPriority(
   priorities: Priority[]
 ): Priority {
   const now = new Date()
-  const timeInColumn = now.getTime() - card.updatedAt.getTime()
+  // Преобразуем updatedAt в Date, если это строка
+  const updatedAt = card.updatedAt instanceof Date ? card.updatedAt : new Date(card.updatedAt)
+  const timeInColumn = now.getTime() - updatedAt.getTime()
   const timeInDays = timeInColumn / (1000 * 60 * 60 * 24) // конвертируем в дни
 
   // Сортируем приоритеты по order

@@ -126,8 +126,9 @@ function Card({ card }: CardProps) {
   // Вычисляем количество дней в текущей колонке
   const getDaysInColumn = () => {
     const now = new Date()
-    const timeInColumn = now.getTime() - card.updatedAt.getTime()
-    const days = Math.floor(timeInColumn / (1000 * 60 * 60 * 24))
+    const updatedAt = card.updatedAt instanceof Date ? card.updatedAt : new Date(card.updatedAt)
+    const timeInColumn = now.getTime() - updatedAt.getTime()
+    const days = Math.floor(timeInColumn / (1000 * 60 * 60 * 24)) + 1
     return days
   }
 
