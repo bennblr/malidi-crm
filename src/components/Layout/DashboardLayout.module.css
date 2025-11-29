@@ -53,7 +53,10 @@
   margin: 24px;
   padding: 24px;
   background: white;
-  min-height: calc(100vh - 112px);
+  height: calc(100vh - 112px);
+  overflow: hidden;
   border-radius: 8px;
+  display: flex;
+  flex-direction: column;
 }
 
