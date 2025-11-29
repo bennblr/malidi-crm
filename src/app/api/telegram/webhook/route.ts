@@ -6,15 +6,21 @@ import dayjs from 'dayjs'
 
 // Обработка GET запроса для проверки webhook
 export async function GET() {
+  console.log('=== Telegram webhook GET request (health check) ===')
   return NextResponse.json({ 
     status: 'ok', 
     message: 'Telegram webhook endpoint is active',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    note: 'This endpoint expects POST requests from Telegram. Use /api/telegram/setup to configure webhook.'
   })
 }
 
 export async function POST(request: NextRequest) {
   try {
+    // Логируем начало обработки запроса
+    console.log('=== Telegram webhook POST request received ===')
+    console.log('Request headers:', JSON.stringify(Object.fromEntries(request.headers.entries()), null, 2))
+    
     const body = await request.json()
     
     // Логируем входящий запрос для отладки
@@ -117,16 +123,15 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('No message text found in body')
+    console.log('Body keys:', Object.keys(body))
     return NextResponse.json({ success: false, error: 'Invalid message format' })
   } catch (error) {
-    console.error('Error processing Telegram webhook:', error)
+    console.error('=== Error processing Telegram webhook ===')
+    console.error('Error:', error)
     if (error instanceof Error) {
-      console.error('Error details:', error.message, error.stack)
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
     }
-    
-    // Отправляем сообщение об ошибке, если есть данные сообщения
-    // Примечание: request уже был прочитан, поэтому нужно сохранить body заранее
-    // Для этого лучше обработать ошибку внутри try блока
     
     return NextResponse.json(
       { success: false, error: 'Internal server error', details: error instanceof Error ? error.message : String(error) },

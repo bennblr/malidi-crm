@@ -96,9 +96,28 @@ curl https://your-app-name.onrender.com/api/telegram/setup
 
 ### 6. Тестирование бота
 
+#### Проверка webhook endpoint
+
+1. Проверьте, что endpoint доступен:
+   ```bash
+   curl https://your-app-name.onrender.com/api/telegram/webhook
+   ```
+   Должен вернуться `{"status": "ok", ...}`
+
+2. Отправьте тестовый запрос (симуляция Telegram):
+   ```bash
+   curl -X POST https://your-app-name.onrender.com/api/telegram/test
+   ```
+   Это отправит тестовое сообщение в webhook и покажет результат
+
+#### Тестирование с реальным ботом
+
 1. Добавьте бота в Telegram чат
 2. Отправьте тестовое сообщение в формате заявки
-3. Проверьте логи на Render.com - должны появиться записи о получении webhook
+3. Проверьте логи на Render.com - должны появиться записи:
+   - `=== Telegram webhook POST request received ===`
+   - `Telegram webhook received: {...}`
+   - `Message text: ...`
 4. Проверьте, что заявка создалась в системе
 
 ## Устранение проблем
