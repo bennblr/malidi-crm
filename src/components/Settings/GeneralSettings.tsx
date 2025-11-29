@@ -19,10 +19,10 @@ function GeneralSettings() {
     try {
       setLoading(true)
       const values = await form.validateFields()
-      
+
       // Преобразуем массив ID пользователей в JSON строку
       const responsibleUserIds = values.responsibleUserIds ? JSON.stringify(values.responsibleUserIds) : '[]'
-      
+
       await settingsStore.updateSettings({
         executionDeadlineDefault: String(values.executionDeadlineDefault),
         telegramNotificationsEnabled: String(values.telegramNotificationsEnabled),
@@ -48,64 +48,61 @@ function GeneralSettings() {
   }
 
   return (
-    <div className={styles.generalSettings}>
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={{
-          executionDeadlineDefault:
-            parseInt(settingsStore.settings.executionDeadlineDefault || '7') || 7,
-          telegramNotificationsEnabled:
-            settingsStore.settings.telegramNotificationsEnabled === 'true',
-          telegramChatId: settingsStore.settings.telegramChatId || '',
-          responsibleUserIds: getResponsibleUserIds(),
-        }}
-      >
-        <Form.Item
-          label="Срок исполнения по умолчанию (дни)"
-          name="executionDeadlineDefault"
-          rules={[
-            { required: true, message: 'Введите срок исполнения' },
-            { type: 'number', min: 1, message: 'Минимум 1 день' },
-          ]}
+      <div className={styles.generalSettings}>
+        <Form
+            form={form}
+            layout="vertical"
+            initialValues={{
+              executionDeadlineDefault:
+                  parseInt(settingsStore.settings.executionDeadlineDefault || '7') || 7,
+              telegramNotificationsEnabled:
+                  settingsStore.settings.telegramNotificationsEnabled === 'true',
+              telegramChatId: settingsStore.settings.telegramChatId || '',
+              responsibleUserIds: getResponsibleUserIds(),
+            }}
         >
-          <InputNumber min={1} style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item
-          label="Включить уведомления в Telegram"
-          name="telegramNotificationsEnabled"
-          valuePropName="checked"
-        >
-          <Switch />
-        </Form.Item>
-        <Form.Item
-          label="ID чата Telegram для уведомлений"
-          name="telegramChatId"
-        >
-          <Input placeholder="Введите ID чата" />
-        </Form.Item>
-        <Form.Item
-          label="Ответственные пользователи (ID Telegram)"
-          name="responsibleUserIds"
-          tooltip="Введите ID пользователей Telegram через запятую. Эти пользователи будут получать уведомления при ошибках обработки заявок."
-        >
-          <Select
-            mode="tags"
-            placeholder="Введите ID пользователей Telegram (например: 123456789, 987654321)"
-            tokenSeparators={[',']}
-            filterOption={(input, option) =>
-              (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
-            }
-            options={[]}
-          />
-        </Form.Item>
-        <Form.Item>
-          <Button type="primary" onClick={handleSave} loading={loading}>
-            Сохранить
-          </Button>
-        </Form.Item>
-      </Form>
-    </div>
+          <Form.Item
+              label="Срок исполнения по умолчанию (дни)"
+              name="executionDeadlineDefault"
+              rules={[
+                { required: true, message: 'Введите срок исполнения' },
+                { type: 'number', min: 1, message: 'Минимум 1 день' },
+              ]}
+          >
+            <InputNumber min={1} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item
+              label="Включить уведомления в Telegram"
+              name="telegramNotificationsEnabled"
+              valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+              label="ID чата Telegram для уведомлений"
+              name="telegramChatId"
+          >
+            <Input placeholder="Введите ID чата" />
+          </Form.Item>
+          <Form.Item
+              label="Ответственные пользователи (ID Telegram)"
+              name="responsibleUserIds"
+              tooltip="Введите ID пользователей Telegram через запятую. Эти пользователи будут получать уведомления при ошибках обработки заявок."
+          >
+            <Select
+                mode="tags"
+                placeholder="Введите ID пользователей Telegram (например: 123456789, 987654321)"
+                tokenSeparators={[',']}
+                options={[]}
+            />
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" onClick={handleSave} loading={loading}>
+              Сохранить
+            </Button>
+          </Form.Item>
+        </Form>
+      </div>
   )
 }
 
