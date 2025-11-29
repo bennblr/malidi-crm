@@ -24,10 +24,10 @@ WEBHOOK_URL=https://your-app-name.onrender.com
 
 **Build Command:**
 ```bash
-npm install && npx prisma generate && npm run build
+npm install && npm run build
 ```
 
-**Важно:** Prisma клиент должен быть сгенерирован ДО сборки, чтобы TypeScript мог проверить типы.
+**Важно:** Prisma клиент автоматически генерируется ДО сборки через скрипт `prebuild` в `package.json`, поэтому TypeScript сможет проверить типы корректно.
 
 **Start Command:**
 ```bash

@@ -28,11 +28,12 @@ export async function getColumnStats(
 
   for (const column of columns) {
     // Количество карточек, оставшихся в колонке
+    // Используем type assertion, так как TypeScript может не видеть поле isClosed
     const remaining = await prisma.card.count({
       where: {
         columnId: column.id,
         isClosed: false,
-      },
+      } as any,
     })
 
     // Количество карточек, перемещенных в эту колонку за период

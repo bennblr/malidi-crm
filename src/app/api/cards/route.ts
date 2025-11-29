@@ -54,6 +54,8 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Используем any для where, так как TypeScript может не видеть поле isClosed
+    // в типе CardWhereInput до генерации Prisma клиента
     const where: any = {}
     if (isClosedParam !== null) {
       where.isClosed = isClosedParam === 'true'
