@@ -9,6 +9,11 @@ export interface CardWithRelations extends Card {
     id: string
     email: string
   }
+  // Явно указываем поля закрытия для совместимости с TypeScript во время билда
+  isClosed: boolean
+  closedAt: Date | null
+  closedComment: string | null
+  closedBy: string | null
 }
 
 interface Filters {
