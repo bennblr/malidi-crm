@@ -31,7 +31,9 @@ export async function POST(
       return NextResponse.json({ error: 'Card not found' }, { status: 404 })
     }
 
-    if (card.isClosed) {
+    // TypeScript может не видеть поля Card при использовании include
+    // Проверяем через проверку наличия свойства или type assertion
+    if ('isClosed' in card && card.isClosed) {
       return NextResponse.json({ error: 'Card already closed' }, { status: 400 })
     }
 
