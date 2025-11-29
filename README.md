@@ -70,7 +70,23 @@ npm run dev
 1. Создайте бота через [@BotFather](https://t.me/BotFather) в Telegram
 2. Получите токен бота
 3. Добавьте токен в `.env` файл как `TELEGRAM_BOT_TOKEN`
-4. Настройте webhook для бота (опционально) или используйте long polling
+4. **Настройте webhook для бота** (обязательно!)
+
+### Настройка webhook
+
+Бот работает через webhook, а не как отдельный процесс. После деплоя настройте webhook:
+
+**Для продакшена (Render.com):**
+```bash
+curl -X POST https://your-app-name.onrender.com/api/telegram/setup
+```
+
+**Для локальной разработки:**
+1. Используйте ngrok для создания туннеля: `ngrok http 3000`
+2. Добавьте `WEBHOOK_URL=https://your-ngrok-url.ngrok.io` в `.env`
+3. Выполните: `npm run telegram:setup-webhook`
+
+Подробнее см. [DEPLOY.md](./DEPLOY.md) и [TELEGRAM_SETUP.md](./TELEGRAM_SETUP.md)
 
 ## Структура заявки из Telegram
 

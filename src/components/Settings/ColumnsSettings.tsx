@@ -46,7 +46,7 @@ function ColumnsSettings() {
       const prevColumn = settingsStore.columns[currentIndex - 1]
       const newOrder = prevColumn.order
       const prevOrder = column.order
-
+      
       try {
         await settingsStore.updateColumn(column.id, { order: newOrder })
         await settingsStore.updateColumn(prevColumn.id, { order: prevOrder })
@@ -64,7 +64,7 @@ function ColumnsSettings() {
       const nextColumn = settingsStore.columns[currentIndex + 1]
       const newOrder = nextColumn.order
       const nextOrder = column.order
-
+      
       try {
         await settingsStore.updateColumn(column.id, { order: newOrder })
         await settingsStore.updateColumn(nextColumn.id, { order: nextOrder })
