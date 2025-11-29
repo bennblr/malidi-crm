@@ -1,0 +1,16 @@
+.columnsSettings {
+  width: 100%;
+}
+
+.header {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
