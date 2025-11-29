@@ -84,7 +84,8 @@ export async function GET(request: NextRequest) {
     const cardsWithUpdatedPriorities = await Promise.all(
       cards.map(async (card) => {
         // Для закрытых карточек не пересчитываем приоритет
-        if (card.isClosed) {
+        // TypeScript может не видеть поля Card при использовании include
+        if ('isClosed' in card && card.isClosed) {
           return card
         }
         
