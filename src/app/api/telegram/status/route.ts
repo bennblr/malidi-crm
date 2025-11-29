@@ -28,9 +28,19 @@ export async function GET() {
 
     // Получаем информацию о webhook из Telegram
     const webhookInfo = await getWebhookInfo()
+    console.log('Webhook info in status endpoint:', JSON.stringify(webhookInfo, null, 2))
     
     const expectedWebhookUrl = `${WEBHOOK_URL}/api/telegram/webhook`
-    const isConfigured = webhookInfo.url === expectedWebhookUrl
+    // Нормализуем URL для сравнения (убираем слэши в конце)
+    const normalizedExpected = expectedWebhookUrl.replace(/\/+$/, '')
+    const normalizedActual = (webhookInfo.url || '').replace(/\/+$/, '')
+    const isConfigured = normalizedActual === normalizedExpected && normalizedActual !== ''
+    
+    console.log('Webhook comparison:', {
+      expected: normalizedExpected,
+      actual: normalizedActual,
+      isConfigured,
+    })
     
     // Проверяем статус бота через Telegram API
     const botInfoUrl = `https://api.telegram.org/bot${BOT_TOKEN}/getMe`
@@ -57,6 +67,7 @@ export async function GET() {
         lastErrorDate: webhookInfo.last_error_date ? new Date(webhookInfo.last_error_date * 1000).toISOString() : null,
         maxConnections: webhookInfo.max_connections || null,
         allowedUpdates: webhookInfo.allowed_updates || null,
+        rawInfo: webhookInfo, // Добавляем сырые данные для отладки
       },
       environment: {
         webhookUrl: WEBHOOK_URL,

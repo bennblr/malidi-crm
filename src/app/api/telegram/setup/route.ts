@@ -62,10 +62,11 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Даем Telegram немного времени на обработку
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Даем Telegram немного времени на обработку (увеличено до 2 секунд)
+    await new Promise(resolve => setTimeout(resolve, 2000))
     
     const webhookInfo = await getWebhookInfo()
+    console.log('Webhook info after setup:', JSON.stringify(webhookInfo, null, 2))
     
     const isConfigured = webhookInfo.url === webhookUrl
     
@@ -74,9 +75,10 @@ export async function POST(request: NextRequest) {
       webhookUrl,
       webhookInfo,
       isConfigured,
+      setupResult: result,
       message: isConfigured
         ? 'Webhook успешно настроен!' 
-        : `Webhook URL не совпадает. Ожидалось: ${webhookUrl}, получено: ${webhookInfo.url || 'пусто'}. Проверьте настройки.`
+        : `Webhook URL не совпадает. Ожидалось: ${webhookUrl}, получено: ${webhookInfo.url || 'пусто'}. Возможно, нужно подождать несколько секунд или проверить доступность URL.`
     })
   } catch (error) {
     console.error('Error setting up webhook:', error)

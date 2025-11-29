@@ -189,10 +189,12 @@ async function handleError(chatId: string | number, messageId: number, errorMess
       where: { key: 'responsibleUserIds' },
     })
     
-    let responsibleUserIds: number[] = []
+    let responsibleUserIds: (number | string)[] = []
     if (responsibleSetting?.value) {
       try {
-        responsibleUserIds = JSON.parse(responsibleSetting.value)
+        const parsed = JSON.parse(responsibleSetting.value)
+        // Поддерживаем как массив чисел, так и массив строк (username)
+        responsibleUserIds = Array.isArray(parsed) ? parsed : []
       } catch (e) {
         console.error('Error parsing responsibleUserIds:', e)
       }

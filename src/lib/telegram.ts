@@ -101,18 +101,51 @@ export async function likeMessage(
 }
 
 /**
+ * Получает информацию о пользователе Telegram по ID
+ */
+async function getTelegramUserInfo(userId: number): Promise<{ username?: string; first_name?: string } | null> {
+  try {
+    // Используем getChatMember для получения информации о пользователе в чате
+    // Но это работает только если пользователь в чате
+    // Альтернатива - использовать getChat, но это тоже требует, чтобы пользователь был в чате
+    // Для упоминания по ID можно использовать просто формат с ID
+    return null // Пока возвращаем null, используем ID напрямую
+  } catch (error) {
+    console.error('Error getting user info:', error)
+    return null
+  }
+}
+
+/**
  * Отправляет сообщение с тегами пользователей
+ * responsibleUserIds может содержать как числовые ID, так и username (строки)
  */
 export async function sendErrorMessageWithTags(
   chatId: string | number,
   messageId: number,
   errorMessage: string,
-  responsibleUserIds: number[]
+  responsibleUserIds: (number | string)[]
 ): Promise<boolean> {
   try {
     // Формируем теги пользователей
+    // Поддерживаем как числовые ID, так и username (строки)
     const userTags = responsibleUserIds
-      .map(userId => `<a href="tg://user?id=${userId}">@user</a>`)
+      .map(userIdOrUsername => {
+        // Если это число - используем формат с ID
+        if (typeof userIdOrUsername === 'number') {
+          return `<a href="tg://user?id=${userIdOrUsername}">@user</a>`
+        }
+        // Если это строка - проверяем, это username или ID в виде строки
+        const str = String(userIdOrUsername).trim()
+        // Если строка начинается с @, убираем его
+        const username = str.startsWith('@') ? str.substring(1) : str
+        // Если строка состоит только из цифр - это ID
+        if (/^\d+$/.test(username)) {
+          return `<a href="tg://user?id=${username}">@user</a>`
+        }
+        // Иначе это username - используем его напрямую
+        return `@${username}`
+      })
       .join(' ')
     
     const message = `❌ <b>Не удалось создать заявку</b>\n\n${errorMessage}\n\n${userTags ? `Ответственные: ${userTags}` : ''}`
@@ -135,14 +168,30 @@ export async function sendErrorMessageWithTags(
  */
 export async function setWebhook(webhookUrl: string): Promise<{ success: boolean; error?: string; details?: any }> {
   try {
-    console.log('Setting webhook to:', webhookUrl)
+    console.log('=== Setting webhook ===')
+    console.log('Webhook URL:', webhookUrl)
+    console.log('BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN ? `${process.env.TELEGRAM_BOT_TOKEN.substring(0, 10)}...` : 'NOT SET')
+    
     const result = await callTelegramAPI('setWebhook', {
       url: webhookUrl,
     })
-    console.log('Webhook set successfully, result:', result)
-    return { success: true }
+    
+    console.log('Webhook set successfully, result:', JSON.stringify(result, null, 2))
+    
+    // Проверяем результат - Telegram API возвращает { ok: true, result: true, description: "..." }
+    if (result === true || result === undefined) {
+      console.log('Webhook configured successfully')
+      return { success: true }
+    }
+    
+    return { success: true, details: result }
   } catch (error) {
-    console.error('Error setting webhook:', error)
+    console.error('=== Error setting webhook ===')
+    console.error('Error:', error)
+    if (error instanceof Error) {
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
+    }
     const errorMessage = error instanceof Error ? error.message : String(error)
     return { 
       success: false, 
@@ -157,10 +206,22 @@ export async function setWebhook(webhookUrl: string): Promise<{ success: boolean
  */
 export async function getWebhookInfo(): Promise<any> {
   try {
-    return await callTelegramAPI('getWebhookInfo')
+    console.log('=== Getting webhook info ===')
+    const result = await callTelegramAPI('getWebhookInfo')
+    console.log('Webhook info result:', JSON.stringify(result, null, 2))
+    
+    // Telegram API возвращает объект с полями url, has_custom_certificate, pending_update_count и т.д.
+    // Если url пустой или отсутствует, возвращаем объект с url: ''
+    if (!result || typeof result !== 'object') {
+      console.warn('Unexpected webhook info format:', result)
+      return { url: '', pending_update_count: 0 }
+    }
+    
+    return result
   } catch (error) {
     console.error('Error getting webhook info:', error)
-    throw error
+    // В случае ошибки возвращаем пустой объект вместо throw
+    return { url: '', pending_update_count: 0, error: error instanceof Error ? error.message : String(error) }
   }
 }
 

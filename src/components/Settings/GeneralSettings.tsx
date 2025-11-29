@@ -85,13 +85,13 @@ function GeneralSettings() {
           <Input placeholder="Введите ID чата" />
         </Form.Item>
         <Form.Item
-          label="Ответственные пользователи (ID Telegram)"
+          label="Ответственные пользователи (ID или username Telegram)"
           name="responsibleUserIds"
-          tooltip="Введите ID пользователей Telegram через запятую. Эти пользователи будут получать уведомления при ошибках обработки заявок."
+          tooltip="Введите ID (число) или username (например: bennblr) пользователей Telegram через запятую. Эти пользователи будут получать уведомления при ошибках обработки заявок. Можно использовать как числовые ID, так и username (без @)."
         >
           <Select
             mode="tags"
-            placeholder="Введите ID пользователей Telegram (например: 123456789, 987654321)"
+            placeholder="Введите ID или username (например: 123456789, bennblr, @username)"
             tokenSeparators={[',']}
             options={[]}
           />
