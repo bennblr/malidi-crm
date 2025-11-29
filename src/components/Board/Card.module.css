@@ -1,0 +1,62 @@
+.card {
+  background: white;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.priorityBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+
+.content {
+  margin-top: 4px;
+}
+
+.header {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.address,
+.contacts {
+  margin: 4px 0;
+  font-size: 12px;
+  color: #666;
+  word-break: break-word;
+}
+
+.order {
+  margin: 4px 0;
+  font-size: 12px;
+  color: #1890ff;
+  font-weight: 500;
+}
+
+.deadline {
+  margin: 4px 0 0 0;
+  font-size: 11px;
+  color: #999;
+}
+

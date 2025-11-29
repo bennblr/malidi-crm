@@ -1,0 +1,96 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      UserRole @default(EDITOR)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdCards Card[]
+}
+
+model Priority {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String
+  order     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cards Card[]
+}
+
+model Column {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  order      Int
+  isVisible  Boolean  @default(true)
+  yellowLimit Int?    // в днях - когда карточка становится желтой
+  redLimit    Int?    // в днях - когда карточка становится красной
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  cards Card[]
+}
+
+model Card {
+  id               String    @id @default(cuid())
+  instruments      String
+  deliveryAddress  String
+  contacts         String
+  organization     String
+  shippingDate     DateTime?
+  notes            String?
+  postalOrder      String?
+  priorityId       String
+  columnId         String
+  userId           String
+  executionDeadline DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  priority Priority    @relation(fields: [priorityId], references: [id])
+  column   Column      @relation(fields: [columnId], references: [id])
+  user     User        @relation(fields: [userId], references: [id])
+  history  CardHistory[]
+}
+
+model SystemSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CardHistory {
+  id            String    @id @default(cuid())
+  cardId        String
+  userId        String?
+  action        String
+  oldColumnId   String?
+  newColumnId   String?
+  oldPriorityId String?
+  newPriorityId String?
+  createdAt     DateTime  @default(now())
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
+

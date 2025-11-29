@@ -1,0 +1,11 @@
+{
+  "hostname": "dpg-d4ldinili9vc73e7v7v0-a",
+  "port": "5432",
+  "database": "alco_crm_bd",
+  "username": "alco_crm_bd_user",
+  "password": "EyTgE08f8CfmvoM5xIHq0rwN2lC0unG2",
+  "internal_database_url": "postgresql://alco_crm_bd_user:EyTgE08f8CfmvoM5xIHq0rwN2lC0unG2@dpg-d4ldinili9vc73e7v7v0-a/alco_crm_bd",
+  "external_database_url": "postgresql://alco_crm_bd_user:EyTgE08f8CfmvoM5xIHq0rwN2lC0unG2@dpg-d4ldinili9vc73e7v7v0-a.oregon-postgres.render.com/alco_crm_bd",
+  "psql_command": "PGPASSWORD=EyTgE08f8CfmvoM5xIHq0rwN2lC0unG2 psql -h dpg-d4ldinili9vc73e7v7v0-a.oregon-postgres.render.com -U alco_crm_bd_user alco_crm_bd"
+}
+
