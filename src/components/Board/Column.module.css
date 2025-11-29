@@ -23,6 +23,7 @@
   margin-bottom: 16px;
   padding-bottom: 12px;
   border-bottom: 2px solid #d9d9d9;
+  flex-shrink: 0;
 }
 
 .header h3 {
@@ -45,6 +46,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  flex: 1;
+  /* Убираем overflow, чтобы скролл был на уровне доски */
 }
+
 

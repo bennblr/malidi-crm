@@ -252,6 +252,53 @@ export class BoardStore {
     }
   }
 
+  async createCard(data: {
+    instruments: string
+    deliveryAddress: string
+    contacts: string
+    organization: string
+    shippingDate?: Date | null
+    notes?: string | null
+    postalOrder?: string | null
+    columnId: string
+    priorityId: string
+    executionDeadline?: Date | null
+  }) {
+    loadingStore.startLoading()
+    try {
+      const response = await fetch('/api/cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!response.ok) throw new Error('Failed to create card')
+      const newCard = await response.json()
+      
+      // Преобразуем строки дат в Date объекты
+      const cardWithDates = {
+        ...newCard,
+        createdAt: new Date(newCard.createdAt),
+        updatedAt: new Date(newCard.updatedAt),
+        shippingDate: newCard.shippingDate ? new Date(newCard.shippingDate) : null,
+        executionDeadline: newCard.executionDeadline ? new Date(newCard.executionDeadline) : null,
+        closedAt: newCard.closedAt ? new Date(newCard.closedAt) : null,
+      }
+      
+      // Очищаем кэш и обновляем данные
+      this.cardsCache = null
+      this.cardsCacheTime = null
+      
+      // Обновляем список карточек с принудительным обновлением
+      await this.fetchCards(true)
+      
+      loadingStore.stopLoading()
+      return cardWithDates
+    } catch (error: any) {
+      loadingStore.stopLoading()
+      throw error
+    }
+  }
+
   async closeCard(cardId: string, comment: string) {
     loadingStore.startLoading()
     try {

@@ -47,6 +47,13 @@
   justify-content: space-between;
   align-items: center;
   height: 100%;
+  width: 100%;
+}
+
+.headerActions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .content {

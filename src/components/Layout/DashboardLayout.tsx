@@ -3,9 +3,11 @@
 import { useSession, signOut } from 'next-auth/react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Layout, Menu, Button } from 'antd'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { observer } from 'mobx-react-lite'
+import { PlusOutlined } from '@ant-design/icons'
 import type { MenuInfo } from 'rc-menu/lib/interface'
+import CreateCardModal from '@/components/Board/CreateCardModal'
 import styles from './DashboardLayout.module.css'
 
 const { Header, Content, Sider } = Layout
@@ -18,6 +20,7 @@ const DashboardLayout = observer(function DashboardLayout({ children }: Dashboar
   const { data: session } = useSession()
   const pathname = usePathname()
   const router = useRouter()
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false)
 
   const handleMenuClick = (info: MenuInfo) => {
     const targetPath = info.key as string
@@ -86,10 +89,25 @@ const DashboardLayout = observer(function DashboardLayout({ children }: Dashboar
         <Header className={styles.header}>
           <div className={styles.headerContent}>
             <span>Добро пожаловать, {session?.user?.email}</span>
-            <Button onClick={handleLogout}>Выйти</Button>
+            <div className={styles.headerActions}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => setIsCreateModalVisible(true)}
+                size="large"
+              >
+                Создать заявку
+              </Button>
+              <Button onClick={handleLogout}>Выйти</Button>
+            </div>
           </div>
         </Header>
         <Content className={styles.content}>{children}</Content>
+        <CreateCardModal
+          open={isCreateModalVisible}
+          onCancel={() => setIsCreateModalVisible(false)}
+          onSuccess={() => setIsCreateModalVisible(false)}
+        />
       </Layout>
     </Layout>
   )

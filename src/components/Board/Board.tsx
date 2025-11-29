@@ -61,13 +61,25 @@ function Board() {
   return (
     <Spin spinning={isLoading} tip="Загрузка...">
       <div className={styles.board}>
-        <Filters />
+        <div className={styles.header}>
+          <Filters />
+        </div>
         <DndContext
           sensors={sensors}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
+          autoScroll={false}
         >
-          <div className={styles.columns}>
+          <div 
+            className={styles.columns} 
+            onWheel={(e) => {
+              const target = e.currentTarget
+              if (target.scrollHeight > target.clientHeight || target.scrollWidth > target.clientWidth) {
+                e.stopPropagation()
+              }
+            }}
+            style={{ overflow: 'scroll' }}
+          >
             {boardStore.visibleColumns.map((column) => {
               const columnCards = boardStore.getCardsByColumn(column.id)
               return (
