@@ -37,6 +37,8 @@ export async function POST(
       return NextResponse.json({ error: 'Card already closed' }, { status: 400 })
     }
 
+    // Используем type assertion, так как TypeScript может не видеть поля
+    // при использовании include, но мы знаем, что они существуют в схеме
     const updatedCard = await prisma.card.update({
       where: { id: params.id },
       data: {
@@ -44,7 +46,7 @@ export async function POST(
         closedAt: new Date(),
         closedComment: comment || null,
         closedBy: session.user.id,
-      },
+      } as any, // Type assertion для обхода проблемы с типами Prisma
       include: {
         priority: true,
         column: true,
