@@ -94,7 +94,22 @@ GET https://your-app-name.onrender.com/api/telegram/setup
 curl https://your-app-name.onrender.com/api/telegram/setup
 ```
 
-### 6. Тестирование бота
+### 6. Проверка статуса webhook
+
+**ВАЖНО:** Перед тестированием проверьте статус webhook!
+
+```bash
+curl https://your-app-name.onrender.com/api/telegram/status
+```
+
+Этот endpoint покажет:
+- Настроен ли webhook
+- Правильный ли URL
+- Есть ли ошибки
+- Количество ожидающих обновлений
+- Рекомендации по устранению проблем
+
+### 7. Тестирование бота
 
 #### Проверка webhook endpoint
 
@@ -104,7 +119,13 @@ curl https://your-app-name.onrender.com/api/telegram/setup
    ```
    Должен вернуться `{"status": "ok", ...}`
 
-2. Отправьте тестовый запрос (симуляция Telegram):
+2. **Проверьте статус webhook:**
+   ```bash
+   curl https://your-app-name.onrender.com/api/telegram/status
+   ```
+   Убедитесь, что `webhook.configured: true` и `webhook.actualUrl` правильный
+
+3. Отправьте тестовый запрос (симуляция Telegram):
    ```bash
    curl -X POST https://your-app-name.onrender.com/api/telegram/test
    ```
@@ -112,13 +133,23 @@ curl https://your-app-name.onrender.com/api/telegram/setup
 
 #### Тестирование с реальным ботом
 
-1. Добавьте бота в Telegram чат
-2. Отправьте тестовое сообщение в формате заявки
-3. Проверьте логи на Render.com - должны появиться записи:
+1. Добавьте бота в Telegram чат (в роли администратора)
+2. **Убедитесь, что webhook настроен:**
+   ```bash
+   curl https://your-app-name.onrender.com/api/telegram/status
+   ```
+3. Отправьте тестовое сообщение в формате заявки в чат
+4. Проверьте логи на Render.com - должны появиться записи:
    - `=== Telegram webhook POST request received ===`
    - `Telegram webhook received: {...}`
    - `Message text: ...`
-4. Проверьте, что заявка создалась в системе
+5. Проверьте, что заявка создалась в системе
+
+**Если логов нет:**
+- Проверьте, что приложение не в спящем режиме (откройте его в браузере)
+- Проверьте статус webhook через `/api/telegram/status`
+- Убедитесь, что webhook URL правильный и доступен из интернета
+- Проверьте, что бот имеет права администратора в чате
 
 ## Устранение проблем
 

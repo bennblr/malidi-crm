@@ -17,20 +17,32 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   // Логируем начало обработки запроса ДО всего остального
+  // Используем console.error для гарантированного вывода в логи Render
+  console.error('=== Telegram webhook POST request received ===')
+  console.error('Timestamp:', new Date().toISOString())
+  console.error('Request URL:', request.url)
+  console.error('Request method:', request.method)
   console.log('=== Telegram webhook POST request received ===')
   console.log('Timestamp:', new Date().toISOString())
   console.log('Request URL:', request.url)
   console.log('Request method:', request.method)
   
   try {
-    console.log('Request headers:', JSON.stringify(Object.fromEntries(request.headers.entries()), null, 2))
+    // Дублируем логи в console.error для гарантированного вывода
+    const headers = Object.fromEntries(request.headers.entries())
+    console.error('Request headers:', JSON.stringify(headers, null, 2))
+    console.log('Request headers:', JSON.stringify(headers, null, 2))
+    console.error('Attempting to parse request body...')
     console.log('Attempting to parse request body...')
     
     const body = await request.json()
+    console.error('Request body parsed successfully')
     console.log('Request body parsed successfully')
     
     // Логируем входящий запрос для отладки
-    console.log('Telegram webhook received:', JSON.stringify(body, null, 2))
+    const bodyStr = JSON.stringify(body, null, 2)
+    console.error('Telegram webhook received:', bodyStr.substring(0, 2000)) // Ограничиваем размер для логов
+    console.log('Telegram webhook received:', bodyStr.substring(0, 2000))
 
     // Обработка сообщений от Telegram
     if (body.message?.text) {
