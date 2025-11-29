@@ -28,6 +28,9 @@ function GeneralSettings() {
         telegramNotificationsEnabled: String(values.telegramNotificationsEnabled),
         telegramChatId: values.telegramChatId || '',
         responsibleUserIds,
+        reportIntervalHour: String(values.reportIntervalHour || 60),
+        reportIntervalDay: String(values.reportIntervalDay || 1440),
+        reportIntervalWeek: String(values.reportIntervalWeek || 10080),
       })
       message.success('Настройки сохранены')
     } catch (error: any) {
@@ -59,6 +62,12 @@ function GeneralSettings() {
             settingsStore.settings.telegramNotificationsEnabled === 'true',
           telegramChatId: settingsStore.settings.telegramChatId || '',
           responsibleUserIds: getResponsibleUserIds(),
+          reportIntervalHour:
+            parseInt(settingsStore.settings.reportIntervalHour || '60') || 60,
+          reportIntervalDay:
+            parseInt(settingsStore.settings.reportIntervalDay || '1440') || 1440,
+          reportIntervalWeek:
+            parseInt(settingsStore.settings.reportIntervalWeek || '10080') || 10080,
         }}
       >
         <Form.Item
@@ -95,6 +104,27 @@ function GeneralSettings() {
             tokenSeparators={[',']}
             options={[]}
           />
+        </Form.Item>
+        <Form.Item
+          label="Интервал отчетов - каждый час (минуты)"
+          name="reportIntervalHour"
+          tooltip="Интервал отправки отчетов каждый час (в минутах). По умолчанию: 60"
+        >
+          <InputNumber min={1} style={{ width: '100%' }} />
+        </Form.Item>
+        <Form.Item
+          label="Интервал отчетов - каждый день (минуты)"
+          name="reportIntervalDay"
+          tooltip="Интервал отправки отчетов каждый день (в минутах). По умолчанию: 1440 (24 часа)"
+        >
+          <InputNumber min={1} style={{ width: '100%' }} />
+        </Form.Item>
+        <Form.Item
+          label="Интервал отчетов - каждую неделю (минуты)"
+          name="reportIntervalWeek"
+          tooltip="Интервал отправки отчетов каждую неделю (в минутах). По умолчанию: 10080 (7 дней)"
+        >
+          <InputNumber min={1} style={{ width: '100%' }} />
         </Form.Item>
         <Form.Item>
           <Button type="primary" onClick={handleSave} loading={loading}>

@@ -72,6 +72,9 @@ async function main() {
     { key: 'telegramNotificationsEnabled', value: 'true' },
     { key: 'telegramChatId', value: '' },
     { key: 'responsibleUserIds', value: '[]' }, // JSON массив ID ответственных пользователей Telegram
+    { key: 'reportIntervalHour', value: '60' }, // 1 час (60 минут)
+    { key: 'reportIntervalDay', value: '1440' }, // 1 сутки (1440 минут)
+    { key: 'reportIntervalWeek', value: '10080' }, // 1 неделя (10080 минут)
   ]
 
   for (const setting of settings) {

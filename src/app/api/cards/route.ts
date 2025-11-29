@@ -4,7 +4,34 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { calculateCardPriority } from '@/utils/priority'
 import { sendNotification, logCardHistory } from '@/lib/notifications'
+import { initializeWebhook } from '@/lib/webhook-init'
+import { initializeSchedules, startScheduler } from '@/lib/report-scheduler'
+import { apiCache } from '@/lib/api-cache'
 import dayjs from '@/lib/dayjs-config'
+
+// Инициализируем webhook и планировщик отчетов при первом запросе к API
+// Используем глобальную переменную для предотвращения повторной инициализации
+declare global {
+  var __webhookInitialized: boolean | undefined
+  var __schedulerStarted: boolean | undefined
+}
+
+if (typeof window === 'undefined' && !global.__webhookInitialized) {
+  global.__webhookInitialized = true
+  initializeWebhook()
+    .then(() => {
+      if (!global.__schedulerStarted) {
+        global.__schedulerStarted = true
+        return initializeSchedules()
+      }
+    })
+    .then(() => {
+      if (global.__schedulerStarted) {
+        startScheduler()
+      }
+    })
+    .catch(console.error)
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +40,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { searchParams } = new URL(request.url)
+    const isClosedParam = searchParams.get('isClosed')
+    const cacheKey = `cards_${isClosedParam || 'false'}`
+
+    // Проверяем кэш
+    const cachedData = apiCache.get<any[]>(cacheKey)
+    if (cachedData) {
+      return NextResponse.json(cachedData, {
+        headers: {
+          'X-From-Cache': 'true',
+        },
+      })
+    }
+
+    const where: any = {}
+    if (isClosedParam !== null) {
+      where.isClosed = isClosedParam === 'true'
+    } else {
+      // По умолчанию показываем только незакрытые карточки
+      where.isClosed = false
+    }
+
     const cards = await prisma.card.findMany({
+      where,
       include: {
         priority: true,
         column: true,
@@ -30,8 +80,14 @@ export async function GET(request: NextRequest) {
     })
 
     // Обновляем приоритеты на основе времени в колонке
+    // Обновляем приоритеты только для незакрытых карточек
     const cardsWithUpdatedPriorities = await Promise.all(
       cards.map(async (card) => {
+        // Для закрытых карточек не пересчитываем приоритет
+        if (card.isClosed) {
+          return card
+        }
+        
         const calculatedPriority = calculateCardPriority(card, priorities)
         
         // Если приоритет изменился, обновляем в БД
@@ -51,7 +107,14 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    return NextResponse.json(cardsWithUpdatedPriorities)
+    // Сохраняем в кэш
+    apiCache.set(cacheKey, cardsWithUpdatedPriorities)
+
+    return NextResponse.json(cardsWithUpdatedPriorities, {
+      headers: {
+        'X-From-Cache': 'false',
+      },
+    })
   } catch (error) {
     console.error('Error fetching cards:', error)
     return NextResponse.json(
@@ -106,6 +169,10 @@ export async function POST(request: NextRequest) {
     })
 
     await logCardHistory(card.id, session.user.id, 'Создана карточка')
+
+    // Очищаем кэш карточек
+    apiCache.clear('cards_false')
+    apiCache.clear('cards_true')
 
     return NextResponse.json(card)
   } catch (error) {

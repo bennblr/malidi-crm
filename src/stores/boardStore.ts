@@ -29,42 +29,126 @@ export class BoardStore {
   sortOrder: 'asc' | 'desc' = 'asc'
   loading = false
   error: string | null = null
+  
+  // Кэширование
+  private cardsCache: CardWithRelations[] | null = null
+  private cardsCacheTime: number | null = null
+  private columnsCache: Column[] | null = null
+  private columnsCacheTime: number | null = null
+  private readonly CACHE_DURATION = 5 * 60 * 1000 // 5 минут
 
   constructor() {
     makeAutoObservable(this)
   }
 
-  async fetchCards() {
+  async fetchCards(forceRefresh = false) {
+    const now = Date.now()
+    
+    // Проверяем кэш, если не требуется принудительное обновление
+    if (!forceRefresh && this.cardsCache && this.cardsCacheTime) {
+      const cacheAge = now - this.cardsCacheTime
+      if (cacheAge < this.CACHE_DURATION) {
+        // Используем кэш
+        runInAction(() => {
+          this.cards = this.cardsCache!
+        })
+        return { fromCache: true }
+      }
+    }
+
     this.loading = true
     this.error = null
     try {
-      const response = await fetch('/api/cards')
+      const response = await fetch('/api/cards', {
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      })
       if (!response.ok) throw new Error('Failed to fetch cards')
       const data = await response.json()
+      
+      // Проверяем заголовок от сервера
+      const fromCache = response.headers.get('X-From-Cache') === 'true'
+      
       runInAction(() => {
         this.cards = data
+        // Обновляем кэш только если данные не из кэша сервера
+        if (!fromCache) {
+          this.cardsCache = data
+          this.cardsCacheTime = now
+        }
         this.loading = false
       })
+      
+      return { fromCache: false }
     } catch (error: any) {
+      // При ошибке используем кэш, если он есть
+      if (this.cardsCache) {
+        runInAction(() => {
+          this.cards = this.cardsCache!
+          this.loading = false
+        })
+        return { fromCache: true, error: error.message }
+      }
+      
       runInAction(() => {
         this.error = error.message
         this.loading = false
       })
+      throw error
     }
   }
 
-  async fetchColumns() {
+  async fetchColumns(forceRefresh = false) {
+    const now = Date.now()
+    
+    // Проверяем кэш, если не требуется принудительное обновление
+    if (!forceRefresh && this.columnsCache && this.columnsCacheTime) {
+      const cacheAge = now - this.columnsCacheTime
+      if (cacheAge < this.CACHE_DURATION) {
+        // Используем кэш
+        runInAction(() => {
+          this.columns = this.columnsCache!
+        })
+        return { fromCache: true }
+      }
+    }
+
     try {
-      const response = await fetch('/api/columns')
+      const response = await fetch('/api/columns', {
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      })
       if (!response.ok) throw new Error('Failed to fetch columns')
       const data = await response.json()
+      
+      // Проверяем заголовок от сервера
+      const fromCache = response.headers.get('X-From-Cache') === 'true'
+      
       runInAction(() => {
         this.columns = data
+        // Обновляем кэш только если данные не из кэша сервера
+        if (!fromCache) {
+          this.columnsCache = data
+          this.columnsCacheTime = now
+        }
       })
+      
+      return { fromCache: false }
     } catch (error: any) {
+      // При ошибке используем кэш, если он есть
+      if (this.columnsCache) {
+        runInAction(() => {
+          this.columns = this.columnsCache!
+        })
+        return { fromCache: true, error: error.message }
+      }
+      
       runInAction(() => {
         this.error = error.message
       })
+      throw error
     }
   }
 
@@ -94,21 +178,12 @@ export class BoardStore {
       if (!response.ok) throw new Error('Failed to move card')
       const updatedCard = await response.json()
       
-      runInAction(() => {
-        const index = this.cards.findIndex((c) => c.id === cardId)
-        if (index !== -1) {
-          this.cards[index] = updatedCard
-        }
-      })
+      // Очищаем кэш и обновляем данные
+      this.cardsCache = null
+      this.cardsCacheTime = null
       
-      // Обновляем карточки без установки loading, так как loadingStore уже активен
-      const cardsResponse = await fetch('/api/cards')
-      if (cardsResponse.ok) {
-        const cardsData = await cardsResponse.json()
-        runInAction(() => {
-          this.cards = cardsData
-        })
-      }
+      // Обновляем карточки с принудительным обновлением
+      await this.fetchCards(true)
     } catch (error: any) {
       runInAction(() => {
         this.error = error.message
@@ -129,27 +204,44 @@ export class BoardStore {
       if (!response.ok) throw new Error('Failed to update card')
       const updatedCard = await response.json()
       
-      runInAction(() => {
-        const index = this.cards.findIndex((c) => c.id === cardId)
-        if (index !== -1) {
-          this.cards[index] = updatedCard
-        }
-      })
+      // Очищаем кэш и обновляем данные
+      this.cardsCache = null
+      this.cardsCacheTime = null
       
-      // Обновляем карточки без установки loading, так как loadingStore уже активен
-      const cardsResponse = await fetch('/api/cards')
-      if (cardsResponse.ok) {
-        const cardsData = await cardsResponse.json()
-        runInAction(() => {
-          this.cards = cardsData
-        })
-      }
+      // Обновляем карточки с принудительным обновлением
+      await this.fetchCards(true)
     } catch (error: any) {
       runInAction(() => {
         this.error = error.message
       })
     } finally {
       loadingStore.stopLoading()
+    }
+  }
+
+  async closeCard(cardId: string, comment: string) {
+    loadingStore.startLoading()
+    try {
+      const response = await fetch(`/api/cards/${cardId}/close`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comment }),
+      })
+      if (!response.ok) throw new Error('Failed to close card')
+      const updatedCard = await response.json()
+      
+      // Очищаем кэш и обновляем данные
+      this.cardsCache = null
+      this.cardsCacheTime = null
+      
+      // Обновляем список карточек с принудительным обновлением
+      await this.fetchCards(true)
+      
+      loadingStore.stopLoading()
+      return updatedCard
+    } catch (error: any) {
+      loadingStore.stopLoading()
+      throw error
     }
   }
 

@@ -2,12 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { apiCache } from '@/lib/api-cache'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const cacheKey = 'columns'
+
+    // Проверяем кэш
+    const cachedData = apiCache.get<any[]>(cacheKey)
+    if (cachedData) {
+      return NextResponse.json(cachedData, {
+        headers: {
+          'X-From-Cache': 'true',
+        },
+      })
     }
 
     const columns = await prisma.column.findMany({
@@ -19,7 +32,14 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    return NextResponse.json(columns)
+    // Сохраняем в кэш
+    apiCache.set(cacheKey, columns)
+
+    return NextResponse.json(columns, {
+      headers: {
+        'X-From-Cache': 'false',
+      },
+    })
   } catch (error) {
     console.error('Error fetching columns:', error)
     return NextResponse.json(
@@ -57,6 +77,9 @@ export async function POST(request: NextRequest) {
         redLimit: redLimit ?? null,
       },
     })
+
+    // Очищаем кэш колонок
+    apiCache.clear('columns')
 
     return NextResponse.json(column)
   } catch (error) {

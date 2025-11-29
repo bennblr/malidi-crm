@@ -63,6 +63,10 @@ model Card {
   columnId         String
   userId           String
   executionDeadline DateTime?
+  isClosed         Boolean   @default(false)
+  closedAt         DateTime?
+  closedComment    String?
+  closedBy         String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 

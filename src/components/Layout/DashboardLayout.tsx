@@ -34,6 +34,10 @@ const DashboardLayout = observer(function DashboardLayout({ children }: Dashboar
         label: 'Доска',
       },
       {
+        key: '/closed',
+        label: 'Закрытые',
+      },
+      {
         key: '/settings',
         label: 'Настройки',
       },
@@ -51,6 +55,7 @@ const DashboardLayout = observer(function DashboardLayout({ children }: Dashboar
 
   const selectedKey = useMemo(() => {
     if (pathname?.startsWith('/board')) return '/board'
+    if (pathname?.startsWith('/closed')) return '/closed'
     if (pathname?.startsWith('/settings')) return '/settings'
     if (pathname?.startsWith('/users')) return '/users'
     return '/board'

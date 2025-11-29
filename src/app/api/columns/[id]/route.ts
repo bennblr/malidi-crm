@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { apiCache } from '@/lib/api-cache'
 
 export async function PATCH(
   request: NextRequest,
@@ -30,6 +31,9 @@ export async function PATCH(
       data: updateData,
     })
 
+    // Очищаем кэш колонок
+    apiCache.clear('columns')
+
     return NextResponse.json(column)
   } catch (error) {
     console.error('Error updating column:', error)
@@ -57,6 +61,9 @@ export async function DELETE(
     await prisma.column.delete({
       where: { id: params.id },
     })
+
+    // Очищаем кэш колонок
+    apiCache.clear('columns')
 
     return NextResponse.json({ success: true })
   } catch (error) {

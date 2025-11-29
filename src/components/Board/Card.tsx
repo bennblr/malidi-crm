@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { observer } from 'mobx-react-lite'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Modal, Form, Input, DatePicker, Button, Tag, message, Descriptions } from 'antd'
-import { EditOutlined } from '@ant-design/icons'
+import { Modal, Form, Input, DatePicker, Button, Tag, message, Descriptions, Popconfirm } from 'antd'
+import { EditOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import dayjs from '@/lib/dayjs-config'
 import { boardStore } from '@/stores/boardStore'
 import { CardWithRelations } from '@/stores/boardStore'
@@ -18,6 +18,8 @@ interface CardProps {
 function Card({ card }: CardProps) {
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
+  const [isCloseModalVisible, setIsCloseModalVisible] = useState(false)
+  const [closeForm] = Form.useForm()
   const [form] = Form.useForm()
   const {
     setNodeRef,
@@ -104,6 +106,31 @@ function Card({ card }: CardProps) {
     }
   }
 
+  const handleCloseClick = () => {
+    setIsCloseModalVisible(true)
+  }
+
+  const handleCloseCard = async () => {
+    try {
+      const values = await closeForm.validateFields()
+      await boardStore.closeCard(card.id, values.comment || '')
+      message.success('Заявка завершена')
+      setIsCloseModalVisible(false)
+      setIsModalVisible(false)
+      closeForm.resetFields()
+    } catch (error) {
+      console.error('Error closing card:', error)
+    }
+  }
+
+  // Вычисляем количество дней в текущей колонке
+  const getDaysInColumn = () => {
+    const now = new Date()
+    const timeInColumn = now.getTime() - card.updatedAt.getTime()
+    const days = Math.floor(timeInColumn / (1000 * 60 * 60 * 24))
+    return days
+  }
+
   const isDeadlineExpired =
     card.executionDeadline && new Date() > new Date(card.executionDeadline)
 
@@ -127,6 +154,16 @@ function Card({ card }: CardProps) {
             {isDeadlineExpired && (
               <Tag color="red">Срок истек</Tag>
             )}
+            <div className={styles.daysIndicator}>
+              <span
+                className={styles.daysCircle}
+                style={{ backgroundColor: card.priority.color }}
+                title={`В столбце ${getDaysInColumn()} ${getDaysInColumn() === 1 ? 'день' : getDaysInColumn() < 5 ? 'дня' : 'дней'}`}
+              >
+                {getDaysInColumn()}
+              </span>
+            </div>
+            <span className={styles.cardId}>#{card.id.slice(-8)}</span>
           </div>
           <h4 className={styles.title}>{card.organization}</h4>
           <p className={styles.address}>{card.deliveryAddress}</p>
@@ -171,6 +208,21 @@ function Card({ card }: CardProps) {
                 >
                   Редактировать
                 </Button>,
+                <Popconfirm
+                  key="completeCard"
+                  title="Завершить заявку"
+                  description="Вы уверены, что хотите завершить эту заявку?"
+                  onConfirm={handleCloseClick}
+                  okText="Да"
+                  cancelText="Нет"
+                >
+                  <Button
+                    danger
+                    icon={<CheckCircleOutlined />}
+                  >
+                    Завершить
+                  </Button>
+                </Popconfirm>,
               ]
         }
         width={700}
@@ -259,6 +311,32 @@ function Card({ card }: CardProps) {
             </Descriptions.Item>
           </Descriptions>
         )}
+      </Modal>
+
+      <Modal
+        title="Завершить заявку"
+        open={isCloseModalVisible}
+        onCancel={() => {
+          setIsCloseModalVisible(false)
+          closeForm.resetFields()
+        }}
+        onOk={handleCloseCard}
+        okText="Закрыть"
+        cancelText="Отмена"
+        okButtonProps={{ danger: true }}
+      >
+        <Form form={closeForm} layout="vertical">
+          <Form.Item
+            label="Комментарий"
+            name="comment"
+            rules={[{ required: false }]}
+          >
+            <Input.TextArea
+              rows={4}
+              placeholder="Введите комментарий (необязательно)"
+            />
+          </Form.Item>
+        </Form>
       </Modal>
     </>
   )
