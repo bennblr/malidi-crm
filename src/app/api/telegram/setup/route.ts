@@ -7,33 +7,76 @@ export async function POST(request: NextRequest) {
 
     if (!WEBHOOK_URL) {
       return NextResponse.json(
-        { success: false, error: 'WEBHOOK_URL or NEXTAUTH_URL is not set' },
+        { 
+          success: false, 
+          error: 'WEBHOOK_URL or NEXTAUTH_URL is not set',
+          note: 'Установите переменную окружения WEBHOOK_URL или NEXTAUTH_URL на Render.com'
+        },
         { status: 400 }
       )
     }
 
-    const webhookUrl = `${WEBHOOK_URL}/api/telegram/webhook`
+    // Проверяем, что URL не localhost
+    if (WEBHOOK_URL.includes('localhost') || WEBHOOK_URL.includes('127.0.0.1')) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'WEBHOOK_URL or NEXTAUTH_URL points to localhost',
+          currentValue: WEBHOOK_URL,
+          note: 'Для продакшена используйте URL вашего приложения на Render.com (например: https://malidi-crm.onrender.com). Обновите переменные окружения на Render.com.'
+        },
+        { status: 400 }
+      )
+    }
+
+    // Убеждаемся, что URL правильный (HTTPS, без слэша в конце)
+    let webhookUrl = `${WEBHOOK_URL}/api/telegram/webhook`
+    webhookUrl = webhookUrl.replace(/\/+$/, '') // Убираем слэши в конце
+    if (!webhookUrl.startsWith('https://')) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Webhook URL must use HTTPS',
+          webhookUrl,
+          note: 'Telegram requires HTTPS for webhooks. Check your WEBHOOK_URL or NEXTAUTH_URL environment variable.'
+        },
+        { status: 400 }
+      )
+    }
     
     console.log(`Setting webhook to: ${webhookUrl}`)
+    console.log(`WEBHOOK_URL from env: ${WEBHOOK_URL}`)
+    console.log(`NEXTAUTH_URL from env: ${process.env.NEXTAUTH_URL}`)
     
-    const success = await setWebhook(webhookUrl)
+    const result = await setWebhook(webhookUrl)
     
-    if (!success) {
+    if (!result.success) {
       return NextResponse.json(
-        { success: false, error: 'Failed to set webhook' },
+        { 
+          success: false, 
+          error: result.error || 'Failed to set webhook',
+          details: result.details,
+          webhookUrl,
+        },
         { status: 500 }
       )
     }
     
+    // Даем Telegram немного времени на обработку
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
     const webhookInfo = await getWebhookInfo()
+    
+    const isConfigured = webhookInfo.url === webhookUrl
     
     return NextResponse.json({
       success: true,
       webhookUrl,
       webhookInfo,
-      message: webhookInfo.url === webhookUrl 
+      isConfigured,
+      message: isConfigured
         ? 'Webhook успешно настроен!' 
-        : 'Webhook URL не совпадает. Проверьте настройки.'
+        : `Webhook URL не совпадает. Ожидалось: ${webhookUrl}, получено: ${webhookInfo.url || 'пусто'}. Проверьте настройки.`
     })
   } catch (error) {
     console.error('Error setting up webhook:', error)

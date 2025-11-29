@@ -133,15 +133,22 @@ export async function sendErrorMessageWithTags(
 /**
  * Настраивает webhook для Telegram бота
  */
-export async function setWebhook(webhookUrl: string): Promise<boolean> {
+export async function setWebhook(webhookUrl: string): Promise<{ success: boolean; error?: string; details?: any }> {
   try {
-    await callTelegramAPI('setWebhook', {
+    console.log('Setting webhook to:', webhookUrl)
+    const result = await callTelegramAPI('setWebhook', {
       url: webhookUrl,
     })
-    return true
+    console.log('Webhook set successfully, result:', result)
+    return { success: true }
   } catch (error) {
     console.error('Error setting webhook:', error)
-    return false
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    return { 
+      success: false, 
+      error: errorMessage,
+      details: error
+    }
   }
 }
 
