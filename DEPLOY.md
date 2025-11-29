@@ -24,10 +24,13 @@ WEBHOOK_URL=https://your-app-name.onrender.com
 
 **Build Command:**
 ```bash
-npm install && npm run build
+npm install && npm run prisma:generate && npm run prisma:migrate:deploy && npm run build
 ```
 
-**Важно:** Prisma клиент автоматически генерируется ДО сборки через скрипт `prebuild` в `package.json`, поэтому TypeScript сможет проверить типы корректно.
+**Важно:** 
+- Prisma клиент генерируется ДО сборки
+- Миграции базы данных применяются автоматически при каждой сборке
+- Это гарантирует, что схема БД всегда синхронизирована с кодом
 
 **Start Command:**
 ```bash
@@ -36,16 +39,21 @@ npm start
 
 ### 3. Настройка базы данных
 
-После первого деплоя выполните миграции и seed:
+**ВАЖНО:** После первого деплоя или после изменений схемы Prisma необходимо выполнить миграции базы данных:
 
 1. Подключитесь к вашему сервису через SSH или используйте Render Shell
 2. Выполните:
    ```bash
-   npm run prisma:migrate
+   npm run prisma:migrate:deploy
    npm run prisma:seed
    ```
 
-Или создайте отдельный скрипт для инициализации БД.
+Или добавьте выполнение миграций в Build Command:
+```bash
+npm install && npm run prisma:generate && npm run prisma:migrate:deploy && npm run build
+```
+
+**Примечание:** `prisma migrate deploy` применяет все ожидающие миграции без создания новых (для продакшена).
 
 ### 4. Настройка Telegram Webhook
 
