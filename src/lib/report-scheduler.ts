@@ -78,7 +78,8 @@ export async function initializeSchedules() {
 export async function checkAndSendReports() {
   const now = new Date()
 
-  for (const [id, schedule] of schedules.entries()) {
+  const schedulesArray = Array.from(schedules.entries())
+  for (const [id, schedule] of schedulesArray) {
     const shouldSend =
       !schedule.lastSent ||
       dayjs(now).diff(dayjs(schedule.lastSent), 'minute') >= schedule.intervalMinutes
