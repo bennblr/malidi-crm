@@ -38,10 +38,15 @@ export async function POST(request: NextRequest) {
       const chatId = body.message.chat.id
       const messageId = body.message.message_id
       
-      console.log('Message text:', messageText)
+      console.log('=== Processing message ===')
+      console.log('Chat ID:', chatId)
+      console.log('Message ID:', messageId)
+      console.log('Message text length:', messageText.length)
+      console.log('Message text (first 500 chars):', messageText.substring(0, 500))
       
       const parsedData = parseTelegramMessage(messageText)
-      console.log('Parsed data:', parsedData)
+      console.log('=== Parsing result ===')
+      console.log('Parsed data:', JSON.stringify(parsedData, null, 2))
 
       if (!parsedData) {
         console.log('Failed to parse message - sending error notification')
@@ -128,9 +133,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, cardId: card.id })
     }
 
+    // Обработка других типов обновлений
+    if (body.edited_message?.text) {
+      console.log('Received edited message, ignoring...')
+      return NextResponse.json({ success: false, error: 'Edited messages are not processed' })
+    }
+
+    if (body.channel_post?.text) {
+      console.log('Received channel post')
+      const messageText = body.channel_post.text
+      const chatId = body.channel_post.chat.id
+      const messageId = body.channel_post.message_id
+      
+      console.log('Processing channel post...')
+      // Обрабатываем как обычное сообщение
+      // (повторяем логику обработки сообщений)
+    }
+
     console.log('No message text found in body')
     console.log('Body keys:', Object.keys(body))
-    return NextResponse.json({ success: false, error: 'Invalid message format' })
+    console.log('Body structure:', JSON.stringify(body, null, 2).substring(0, 1000))
+    return NextResponse.json({ success: false, error: 'Invalid message format - no text message found' })
   } catch (error) {
     console.error('=== Error processing Telegram webhook ===')
     console.error('Error:', error)
