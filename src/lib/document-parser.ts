@@ -95,11 +95,26 @@ export async function parseTemplateFields(fileBuffer: Buffer): Promise<TemplateF
  */
 function cleanErrorMessages(docBuffer: Buffer): Buffer {
   try {
+    console.log('cleanErrorMessages: Starting cleanup, buffer size:', docBuffer.length)
     const zip = new PizZip(docBuffer)
     const xmlFile = zip.files['word/document.xml']
     
     if (xmlFile) {
       let xml = xmlFile.asText()
+      console.log('cleanErrorMessages: XML length:', xml.length)
+      
+      // Проверяем, есть ли ошибки в оригинальном XML
+      const hasErrors = /Internal server error|error|Error|ERROR/i.test(xml)
+      if (hasErrors) {
+        console.log('cleanErrorMessages: Found error messages in XML, cleaning...')
+        // Логируем фрагмент XML с ошибками для отладки
+        const errorMatch = xml.match(/[^<]*(Internal server error|error|Error|ERROR)[^<]*/i)
+        if (errorMatch) {
+          console.log('cleanErrorMessages: Error snippet found:', errorMatch[0].substring(0, 200))
+        }
+      } else {
+        console.log('cleanErrorMessages: No error messages found in XML')
+      }
       
       // Сохраняем оригинальный XML для отладки
       const originalXml = xml
@@ -153,7 +168,19 @@ function cleanErrorMessages(docBuffer: Buffer): Buffer {
       
       // Проверяем, изменился ли XML
       if (xml !== originalXml) {
-        console.log('Cleaned error messages from document XML')
+        console.log('cleanErrorMessages: XML was modified during cleanup')
+        // Проверяем, остались ли ошибки
+        const stillHasErrors = /Internal server error|error|Error|ERROR/i.test(xml)
+        if (stillHasErrors) {
+          console.warn('cleanErrorMessages: WARNING - Error messages still present after cleanup!')
+          // Пробуем более агрессивную очистку
+          xml = xml.replace(/Internal\s+server\s+error/gi, '')
+          xml = xml.replace(/error/gi, '')
+        } else {
+          console.log('cleanErrorMessages: All error messages removed successfully')
+        }
+      } else {
+        console.log('cleanErrorMessages: XML was not modified (no errors found or already clean)')
       }
       
       zip.file('word/document.xml', xml)
@@ -163,10 +190,14 @@ function cleanErrorMessages(docBuffer: Buffer): Buffer {
         compression: 'DEFLATE',
       })
       
+      console.log('cleanErrorMessages: Cleanup complete, new buffer size:', cleanedBuffer.length)
       return Buffer.from(cleanedBuffer)
+    } else {
+      console.warn('cleanErrorMessages: XML file not found in document')
     }
-  } catch (error) {
-    console.error('Error cleaning error messages from document:', error)
+  } catch (error: any) {
+    console.error('cleanErrorMessages: Error cleaning error messages from document:', error)
+    console.error('cleanErrorMessages: Error stack:', error.stack)
     // Если не удалось очистить, возвращаем оригинальный буфер
   }
   
@@ -285,8 +316,10 @@ export async function generateDocument(
     }
 
     // Заполняем шаблон данными с обработкой ошибок
+    console.log('Starting document render with data:', JSON.stringify(processedData, null, 2))
     try {
       doc.render(processedData)
+      console.log('Document rendered successfully')
     } catch (renderError: any) {
       console.error('Docxtemplater render error:', renderError)
       console.error('Render error properties:', renderError.properties)
@@ -332,14 +365,19 @@ export async function generateDocument(
             errorLogging: false,
           })
           
+          console.log('Retrying render with missing tags filled')
           newDoc.render(processedData)
+          console.log('Retry render completed')
           const generatedZip = newDoc.getZip().generate({
             type: 'nodebuffer',
             compression: 'DEFLATE',
           })
           
+          console.log('Cleaning error messages from retry document...')
           // Удаляем сообщения об ошибках из сгенерированного документа
-          return cleanErrorMessages(Buffer.from(generatedZip))
+          const cleaned = cleanErrorMessages(Buffer.from(generatedZip))
+          console.log('Retry document cleaned, size:', cleaned.length)
+          return cleaned
         }
       }
       
@@ -353,9 +391,28 @@ export async function generateDocument(
     })
 
     const generatedBuffer = Buffer.from(generatedZip)
+    console.log('Document generated, buffer size:', generatedBuffer.length)
     
     // Удаляем сообщения об ошибках из сгенерированного документа
-    return cleanErrorMessages(generatedBuffer)
+    console.log('Cleaning error messages from document...')
+    const cleanedBuffer = cleanErrorMessages(generatedBuffer)
+    console.log('Document cleaned, buffer size:', cleanedBuffer.length)
+    
+    // Проверяем, что в документе нет ошибок
+    try {
+      const checkZip = new PizZip(cleanedBuffer)
+      const checkXml = checkZip.files['word/document.xml']?.asText() || ''
+      if (checkXml.includes('Internal server error') || checkXml.includes('error')) {
+        console.warn('WARNING: Document still contains error messages after cleaning!')
+        console.warn('XML snippet:', checkXml.substring(0, 500))
+      } else {
+        console.log('Document verified: no error messages found')
+      }
+    } catch (checkError) {
+      console.error('Error checking cleaned document:', checkError)
+    }
+    
+    return cleanedBuffer
   } catch (error: any) {
     console.error('Error generating document:', error)
     console.error('Error stack:', error.stack)

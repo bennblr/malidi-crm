@@ -94,13 +94,37 @@ export async function POST(request: NextRequest) {
     }
 
     // Генерируем документ
-    console.log('Generating document with data:', JSON.stringify(templateData, null, 2))
+    console.log('=== Starting document generation ===')
+    console.log('Template ID:', templateId)
+    console.log('Card ID:', cardId || 'none')
+    console.log('Template data:', JSON.stringify(templateData, null, 2))
+    console.log('Template buffer size:', templateBuffer.length)
+    
     let generatedBuffer: Buffer
     try {
       generatedBuffer = await generateDocument(templateBuffer, templateData)
-      console.log('Document generated successfully, size:', generatedBuffer.length)
+      console.log('=== Document generation completed ===')
+      console.log('Generated buffer size:', generatedBuffer.length)
+      
+      // Проверяем содержимое сгенерированного документа
+      try {
+        const PizZip = (await import('pizzip')).default
+        const checkZip = new PizZip(generatedBuffer)
+        const checkXml = checkZip.files['word/document.xml']?.asText() || ''
+        if (checkXml.includes('Internal server error')) {
+          console.error('ERROR: Generated document contains "Internal server error"!')
+          console.error('XML snippet with error:', checkXml.match(/[^<]*(Internal server error)[^<]*/i)?.[0]?.substring(0, 300))
+        } else {
+          console.log('Document verification: No "Internal server error" found')
+        }
+      } catch (checkError) {
+        console.error('Error verifying generated document:', checkError)
+      }
     } catch (error: any) {
-      console.error('Error generating document:', error)
+      console.error('=== Document generation failed ===')
+      console.error('Error:', error)
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
       throw error
     }
 
