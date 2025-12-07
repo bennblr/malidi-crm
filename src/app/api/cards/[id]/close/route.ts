@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { logCardHistory } from '@/lib/notifications'
-import { apiCache } from '@/lib/api-cache'
 
 export async function POST(
   request: NextRequest,
@@ -63,9 +62,7 @@ export async function POST(
       undefined
     )
 
-    // Очищаем кэш карточек
-    apiCache.clear('cards_false')
-    apiCache.clear('cards_true')
+    // Кэш убран, данные всегда свежие
 
     return NextResponse.json(updatedCard)
   } catch (error) {

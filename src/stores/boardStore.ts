@@ -36,9 +36,7 @@ export class BoardStore {
   loading = false
   error: string | null = null
   
-  // Кэширование
-  private cardsCache: CardWithRelations[] | null = null
-  private cardsCacheTime: number | null = null
+  // Кэширование только для колонок (они редко меняются)
   private columnsCache: Column[] | null = null
   private columnsCacheTime: number | null = null
   private readonly CACHE_DURATION = 5 * 60 * 1000 // 5 минут
@@ -47,30 +45,8 @@ export class BoardStore {
     makeAutoObservable(this)
   }
 
-  async fetchCards(forceRefresh = false) {
-    const now = Date.now()
-    
-    // Проверяем кэш, если не требуется принудительное обновление
-    if (!forceRefresh && this.cardsCache && this.cardsCacheTime) {
-      const cacheAge = now - this.cardsCacheTime
-      if (cacheAge < this.CACHE_DURATION) {
-        // Преобразуем строки дат в Date объекты для кэша
-        const cachedCardsWithDates = this.cardsCache.map((card: any) => ({
-          ...card,
-          createdAt: card.createdAt instanceof Date ? card.createdAt : new Date(card.createdAt),
-          updatedAt: card.updatedAt instanceof Date ? card.updatedAt : new Date(card.updatedAt),
-          shippingDate: card.shippingDate ? (card.shippingDate instanceof Date ? card.shippingDate : new Date(card.shippingDate)) : null,
-          executionDeadline: card.executionDeadline ? (card.executionDeadline instanceof Date ? card.executionDeadline : new Date(card.executionDeadline)) : null,
-          closedAt: card.closedAt ? (card.closedAt instanceof Date ? card.closedAt : new Date(card.closedAt)) : null,
-        }))
-        // Используем кэш
-        runInAction(() => {
-          this.cards = cachedCardsWithDates
-        })
-        return { fromCache: true }
-      }
-    }
-
+  async fetchCards() {
+    // Убрали кэширование карточек - всегда загружаем свежие данные
     this.loading = true
     this.error = null
     try {
@@ -92,39 +68,13 @@ export class BoardStore {
         closedAt: card.closedAt ? new Date(card.closedAt) : null,
       }))
       
-      // Проверяем заголовок от сервера
-      const fromCache = response.headers.get('X-From-Cache') === 'true'
-      
       runInAction(() => {
         this.cards = cardsWithDates
-        // Обновляем кэш только если данные не из кэша сервера
-        if (!fromCache) {
-          this.cardsCache = cardsWithDates
-          this.cardsCacheTime = now
-        }
         this.loading = false
       })
       
       return { fromCache: false }
     } catch (error: any) {
-      // При ошибке используем кэш, если он есть
-      if (this.cardsCache) {
-        // Преобразуем строки дат в Date объекты для кэша тоже
-        const cachedCardsWithDates = this.cardsCache.map((card: any) => ({
-          ...card,
-          createdAt: card.createdAt instanceof Date ? card.createdAt : new Date(card.createdAt),
-          updatedAt: card.updatedAt instanceof Date ? card.updatedAt : new Date(card.updatedAt),
-          shippingDate: card.shippingDate ? (card.shippingDate instanceof Date ? card.shippingDate : new Date(card.shippingDate)) : null,
-          executionDeadline: card.executionDeadline ? (card.executionDeadline instanceof Date ? card.executionDeadline : new Date(card.executionDeadline)) : null,
-          closedAt: card.closedAt ? (card.closedAt instanceof Date ? card.closedAt : new Date(card.closedAt)) : null,
-        }))
-        runInAction(() => {
-          this.cards = cachedCardsWithDates
-          this.loading = false
-        })
-        return { fromCache: true, error: error.message }
-      }
-      
       runInAction(() => {
         this.error = error.message
         this.loading = false
@@ -212,12 +162,8 @@ export class BoardStore {
       if (!response.ok) throw new Error('Failed to move card')
       const updatedCard = await response.json()
       
-      // Очищаем кэш и обновляем данные
-      this.cardsCache = null
-      this.cardsCacheTime = null
-      
-      // Обновляем карточки с принудительным обновлением
-      await this.fetchCards(true)
+      // Обновляем карточки
+      await this.fetchCards()
     } catch (error: any) {
       runInAction(() => {
         this.error = error.message
@@ -238,12 +184,8 @@ export class BoardStore {
       if (!response.ok) throw new Error('Failed to update card')
       const updatedCard = await response.json()
       
-      // Очищаем кэш и обновляем данные
-      this.cardsCache = null
-      this.cardsCacheTime = null
-      
-      // Обновляем карточки с принудительным обновлением
-      await this.fetchCards(true)
+      // Обновляем карточки
+      await this.fetchCards()
     } catch (error: any) {
       runInAction(() => {
         this.error = error.message
@@ -285,12 +227,8 @@ export class BoardStore {
         closedAt: newCard.closedAt ? new Date(newCard.closedAt) : null,
       }
       
-      // Очищаем кэш и обновляем данные
-      this.cardsCache = null
-      this.cardsCacheTime = null
-      
-      // Обновляем список карточек с принудительным обновлением
-      await this.fetchCards(true)
+      // Обновляем список карточек
+      await this.fetchCards()
       
       loadingStore.stopLoading()
       return cardWithDates
@@ -311,12 +249,8 @@ export class BoardStore {
       if (!response.ok) throw new Error('Failed to close card')
       const updatedCard = await response.json()
       
-      // Очищаем кэш и обновляем данные
-      this.cardsCache = null
-      this.cardsCacheTime = null
-      
-      // Обновляем список карточек с принудительным обновлением
-      await this.fetchCards(true)
+      // Обновляем список карточек
+      await this.fetchCards()
       
       loadingStore.stopLoading()
       return updatedCard

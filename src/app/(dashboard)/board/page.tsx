@@ -19,12 +19,12 @@ function BoardPage() {
     // Автоматическое обновление карточек каждые 10 секунд
     // Это обеспечит появление новых карточек из Telegram сразу после их создания
     intervalRef.current = setInterval(() => {
-      boardStore.fetchCards(true) // forceRefresh = true, чтобы обойти клиентский кэш
+      boardStore.fetchCards() // Кэш убран, всегда загружаем свежие данные
     }, 10000) // 10 секунд
 
     // Обновление при возврате фокуса на вкладку
     const handleFocus = () => {
-      boardStore.fetchCards(true)
+      boardStore.fetchCards()
     }
     window.addEventListener('focus', handleFocus)
 

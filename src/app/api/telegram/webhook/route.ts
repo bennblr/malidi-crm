@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { parseTelegramMessage } from '@/utils/parser'
 import { likeMessage, sendErrorMessageWithTags } from '@/lib/telegram'
-import { apiCache } from '@/lib/api-cache'
 import dayjs from '@/lib/dayjs-config'
 
 // Обработка GET запроса для проверки webhook
@@ -140,9 +139,7 @@ export async function POST(request: NextRequest) {
 
       console.log('Card created successfully:', card.id)
       
-      // Очищаем кэш карточек на сервере, чтобы новые карточки появлялись сразу
-      apiCache.clear('cards_false')
-      apiCache.clear('cards_true')
+      // Кэш убран, данные всегда свежие
       
       // Ставим лайк на сообщение
       await likeMessage(chatId, messageId)

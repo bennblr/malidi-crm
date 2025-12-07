@@ -6,7 +6,6 @@ import { calculateCardPriority } from '@/utils/priority'
 import { sendNotification, logCardHistory } from '@/lib/notifications'
 import { initializeWebhook } from '@/lib/webhook-init'
 import { initializeSchedules, startScheduler } from '@/lib/report-scheduler'
-import { apiCache } from '@/lib/api-cache'
 import { runMigrations } from '@/lib/migrate-db'
 import dayjs from '@/lib/dayjs-config'
 
@@ -50,17 +49,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const isClosedParam = searchParams.get('isClosed')
-    const cacheKey = `cards_${isClosedParam || 'false'}`
-
-    // Проверяем кэш
-    const cachedData = apiCache.get<any[]>(cacheKey)
-    if (cachedData) {
-      return NextResponse.json(cachedData, {
-        headers: {
-          'X-From-Cache': 'true',
-        },
-      })
-    }
+    
+    // Убрали кэширование карточек - всегда возвращаем свежие данные из БД
 
     // Используем any для where, так как TypeScript может не видеть поле isClosed
     // в типе CardWhereInput до генерации Prisma клиента
@@ -118,14 +108,8 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    // Сохраняем в кэш
-    apiCache.set(cacheKey, cardsWithUpdatedPriorities)
-
-    return NextResponse.json(cardsWithUpdatedPriorities, {
-      headers: {
-        'X-From-Cache': 'false',
-      },
-    })
+    // Убрали кэширование - всегда возвращаем свежие данные
+    return NextResponse.json(cardsWithUpdatedPriorities)
   } catch (error) {
     console.error('Error fetching cards:', error)
     return NextResponse.json(
@@ -181,9 +165,7 @@ export async function POST(request: NextRequest) {
 
     await logCardHistory(card.id, session.user.id, 'Создана карточка')
 
-    // Очищаем кэш карточек
-    apiCache.clear('cards_false')
-    apiCache.clear('cards_true')
+    // Кэш убран, данные всегда свежие
 
     return NextResponse.json(card)
   } catch (error) {

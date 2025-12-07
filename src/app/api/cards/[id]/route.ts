@@ -4,7 +4,6 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { calculateCardPriority } from '@/utils/priority'
 import { sendNotification, logCardHistory } from '@/lib/notifications'
-import { apiCache } from '@/lib/api-cache'
 import dayjs from '@/lib/dayjs-config'
 
 export async function GET(
@@ -152,9 +151,7 @@ export async function PATCH(
       await logCardHistory(card.id, session.user.id, 'Обновлена карточка')
     }
 
-    // Очищаем кэш карточек
-    apiCache.clear('cards_false')
-    apiCache.clear('cards_true')
+    // Кэш убран, данные всегда свежие
 
     return NextResponse.json(card)
   } catch (error) {
@@ -180,9 +177,7 @@ export async function DELETE(
       where: { id: params.id },
     })
 
-    // Очищаем кэш карточек
-    apiCache.clear('cards_false')
-    apiCache.clear('cards_true')
+    // Кэш убран, данные всегда свежие
 
     return NextResponse.json({ success: true })
   } catch (error) {
