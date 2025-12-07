@@ -26,7 +26,8 @@ export async function GET(
     const fileBuffer = await readDocument(document.filePath)
 
     // Возвращаем файл для скачивания
-    return new NextResponse(fileBuffer, {
+    // Преобразуем Buffer в ArrayBuffer для NextResponse
+    return new NextResponse(fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength), {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'Content-Disposition': `attachment; filename="${document.fileName}"`,
