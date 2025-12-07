@@ -36,6 +36,15 @@ function Filters() {
           style={{ width: 200 }}
           allowClear
         />
+        <Input
+          placeholder="Серийный номер"
+          value={boardStore.filters.serialNumber}
+          onChange={(e) =>
+            boardStore.setFilter('serialNumber', e.target.value || undefined)
+          }
+          style={{ width: 200 }}
+          allowClear
+        />
         <Select
           placeholder="Приоритет"
           value={boardStore.filters.priorityId}

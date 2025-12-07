@@ -7,7 +7,6 @@ import { settingsStore } from '@/stores/settingsStore'
 import PrioritiesSettings from './PrioritiesSettings'
 import ColumnsSettings from './ColumnsSettings'
 import GeneralSettings from './GeneralSettings'
-import TelegramWebhookSettings from './TelegramWebhookSettings'
 import styles from './Settings.module.css'
 
 function Settings() {
@@ -30,11 +29,6 @@ function Settings() {
             key: 'general',
             label: 'Общие настройки',
             children: <GeneralSettings />,
-          },
-          {
-            key: 'telegram-webhook',
-            label: 'Telegram Webhook',
-            children: <TelegramWebhookSettings />,
           },
         ]}
       />

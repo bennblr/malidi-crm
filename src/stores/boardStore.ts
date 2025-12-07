@@ -20,6 +20,7 @@ interface Filters {
   organization?: string
   contacts?: string
   deliveryAddress?: string
+  serialNumber?: string
   priorityId?: string
   columnId?: string
   executionDeadlineExpired?: boolean
@@ -368,6 +369,21 @@ export class BoardStore {
           .toLowerCase()
           .includes(this.filters.deliveryAddress!.toLowerCase())
       )
+    }
+    if (this.filters.serialNumber) {
+      const searchSerial = this.filters.serialNumber.toLowerCase()
+      filtered = filtered.filter((card) => {
+        // Ищем серийный номер в поле instruments
+        // Форматы: "S/N: 10505217", "S/N 10505217", "10505217", "Серийный номер: 10505217"
+        const instruments = card.instruments.toLowerCase()
+        // Ищем точное совпадение серийного номера
+        // Паттерн: S/N, S.N., Серийный номер, С/Н, или просто цифры
+        const serialPattern = new RegExp(
+          `(?:s[/\\.]?n|серийный номер|с[/\\.]?н)[:\\s]*${searchSerial.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}|\\b${searchSerial.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`,
+          'i'
+        )
+        return serialPattern.test(instruments) || instruments.includes(searchSerial)
+      })
     }
     if (this.filters.priorityId) {
       filtered = filtered.filter((card) => card.priorityId === this.filters.priorityId)
