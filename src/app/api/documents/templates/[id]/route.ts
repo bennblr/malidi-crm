@@ -37,12 +37,12 @@ export async function GET(
 
     return NextResponse.json({
       ...template,
-      fields: JSON.parse(template.fields),
+      fields: template.fields ? (typeof template.fields === 'string' ? JSON.parse(template.fields) : template.fields) : [],
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching template:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     )
   }
@@ -80,12 +80,11 @@ export async function DELETE(
     })
 
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting template:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     )
   }
 }
-

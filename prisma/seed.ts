@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { createDemoTemplate } from '../src/lib/create-demo-template'
 
 const prisma = new PrismaClient()
 
@@ -83,6 +84,13 @@ async function main() {
       update: {},
       create: setting,
     })
+  }
+
+  // Создаем демонстрационный шаблон документа
+  try {
+    await createDemoTemplate()
+  } catch (error) {
+    console.warn('Failed to create demo template:', error)
   }
 
   console.log('Seed data created successfully')

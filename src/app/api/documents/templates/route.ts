@@ -31,11 +31,17 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    return NextResponse.json(templates)
-  } catch (error) {
+    // Парсим fields из JSON для каждого шаблона
+    const templatesWithParsedFields = templates.map((template) => ({
+      ...template,
+      fields: template.fields ? (typeof template.fields === 'string' ? JSON.parse(template.fields) : template.fields) : [],
+    }))
+
+    return NextResponse.json(templatesWithParsedFields)
+  } catch (error: any) {
     console.error('Error fetching templates:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     )
   }
@@ -111,4 +117,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

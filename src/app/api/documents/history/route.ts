@@ -52,16 +52,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       documents.map((doc) => ({
         ...doc,
-        data: JSON.parse(doc.data),
+        data: doc.data ? (typeof doc.data === 'string' ? JSON.parse(doc.data) : doc.data) : {},
         downloadUrl: `/api/documents/download/${doc.id}`,
       }))
     )
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching document history:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     )
   }
 }
-

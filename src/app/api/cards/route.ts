@@ -7,6 +7,7 @@ import { sendNotification, logCardHistory } from '@/lib/notifications'
 import { initializeWebhook } from '@/lib/webhook-init'
 import { initializeSchedules, startScheduler } from '@/lib/report-scheduler'
 import { runMigrations } from '@/lib/migrate-db'
+import { createDemoTemplate } from '@/lib/create-demo-template'
 import dayjs from '@/lib/dayjs-config'
 
 // Инициализируем миграции, webhook и планировщик отчетов при первом запросе к API
@@ -17,9 +18,20 @@ declare global {
   var __schedulerStarted: boolean | undefined
 }
 
+// Инициализируем демо-шаблон
+declare global {
+  var __demoTemplateCreated: boolean | undefined
+}
+
 if (typeof window === 'undefined' && !global.__migrationsRun) {
   global.__migrationsRun = true
   runMigrations()
+    .then(() => {
+      if (!global.__demoTemplateCreated) {
+        global.__demoTemplateCreated = true
+        return createDemoTemplate()
+      }
+    })
     .then(() => {
       if (!global.__webhookInitialized) {
         global.__webhookInitialized = true
