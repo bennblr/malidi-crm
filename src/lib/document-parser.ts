@@ -111,21 +111,37 @@ export async function generateDocument(
     // Подготавливаем данные для docxtemplater
     const processedData: Record<string, any> = { ...data }
     
-    // Убеждаемся, что все циклы переданы как массивы
-    // Если массив пустой или не передан, передаем пустой массив
+    // Удаляем все данные циклов (циклы отключены)
+    // Ищем все ключи, которые могут быть циклами, и удаляем их
     for (const key in processedData) {
       const value = processedData[key]
-      // Если значение undefined или null, удаляем его
-      if (value === undefined || value === null) {
-        continue
-      }
-      // Если это массив, убеждаемся что он валидный
+      // Если это массив, удаляем его (циклы отключены)
       if (Array.isArray(value)) {
-        // Фильтруем пустые элементы
-        processedData[key] = value.filter(item => 
-          item && typeof item === 'object' && Object.keys(item).length > 0
-        )
+        delete processedData[key]
       }
+    }
+    
+    // Проверяем XML шаблона на наличие тегов циклов и передаем пустые массивы
+    // Это предотвращает ошибку "Unopened loop"
+    try {
+      const xml = zip.files['word/document.xml']?.asText()
+      if (xml) {
+        // Ищем все теги циклов в XML
+        const loopPattern = /\{#([a-zA-Z_][a-zA-Z0-9_]*)\}/g
+        let match
+        const foundLoops = new Set<string>()
+        while ((match = loopPattern.exec(xml)) !== null) {
+          const loopFieldName = match[1]
+          foundLoops.add(loopFieldName)
+        }
+        
+        // Для всех найденных циклов передаем пустой массив
+        foundLoops.forEach((loopFieldName) => {
+          processedData[loopFieldName] = []
+        })
+      }
+    } catch (error) {
+      // Игнорируем ошибки при чтении XML
     }
 
     // Заполняем шаблон данными
