@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Modal, Form, Input, Button, Select, message, Space, Tag, Card } from 'antd'
-import { FileTextOutlined, DownloadOutlined, PlusOutlined, MinusCircleOutlined } from '@ant-design/icons'
+import { Modal, Form, Input, Button, Select, message, Space, Tag } from 'antd'
+import { FileTextOutlined, DownloadOutlined } from '@ant-design/icons'
 import { CardWithRelations } from '@/stores/boardStore'
 import styles from './DocumentGenerator.module.css'
 
@@ -62,10 +62,10 @@ function DocumentGenerator({ card, visible, onCancel, onSuccess }: DocumentGener
       const initialValues: Record<string, any> = {}
 
       template.fields.forEach((field) => {
-        // Для массивов инициализируем пустым массивом
+        // Пропускаем циклы
         if (field.type === 'loop') {
-          initialValues[field.name] = []
-        } else {
+          return
+        }
           switch (field.name.toLowerCase()) {
             case 'client_name':
             case 'organization':
@@ -107,15 +107,6 @@ function DocumentGenerator({ card, visible, onCancel, onSuccess }: DocumentGener
       })
 
       form.setFieldsValue(initialValues)
-    } else if (template) {
-      // Если нет карточки, инициализируем пустыми значениями
-      const initialValues: Record<string, any> = {}
-      template.fields.forEach((field) => {
-        if (field.type === 'loop') {
-          initialValues[field.name] = []
-        }
-      })
-      form.setFieldsValue(initialValues)
     }
   }
 
@@ -130,15 +121,11 @@ function DocumentGenerator({ card, visible, onCancel, onSuccess }: DocumentGener
       
       if (selectedTemplate) {
         selectedTemplate.fields.forEach((field) => {
+          // Пропускаем циклы
           if (field.type === 'loop') {
-            // Form.List уже возвращает массив, но нужно убедиться, что это массив
-            if (!processedData[field.name] || !Array.isArray(processedData[field.name])) {
-              processedData[field.name] = []
-            }
-            // Фильтруем пустые элементы
-            processedData[field.name] = processedData[field.name].filter((item: any) => 
-              item && (item.name || item.quantity || Object.values(item).some(v => v))
-            )
+            // Удаляем данные циклов из processedData
+            delete processedData[field.name]
+            return
           }
           // Для условий преобразуем строку в boolean
           if (field.type === 'condition' && processedData[field.name] !== undefined) {
@@ -202,66 +189,9 @@ function DocumentGenerator({ card, visible, onCancel, onSuccess }: DocumentGener
   const renderFieldInput = (field: { name: string; type: string }) => {
     const fieldType = field.type
 
+    // Отключаем поддержку циклов
     if (fieldType === 'loop') {
-      return (
-        <Form.List name={field.name} key={field.name}>
-          {(fields, { add, remove }) => (
-            <Form.Item
-              label={
-                <Space>
-                  <span>{field.name}</span>
-                  <Tag color="blue">Массив</Tag>
-                </Space>
-              }
-            >
-              {fields.map(({ key, name, ...restField }) => (
-                <Card
-                  key={key}
-                  size="small"
-                  style={{ marginBottom: 16 }}
-                  extra={
-                    <Button
-                      type="text"
-                      danger
-                      icon={<MinusCircleOutlined />}
-                      onClick={() => remove(name)}
-                    >
-                      Удалить
-                    </Button>
-                  }
-                >
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Form.Item
-                      {...restField}
-                      name={[name, 'name']}
-                      label="Название"
-                      rules={[{ required: false }]}
-                    >
-                      <Input placeholder="Введите название" />
-                    </Form.Item>
-                    <Form.Item
-                      {...restField}
-                      name={[name, 'quantity']}
-                      label="Количество"
-                      rules={[{ required: false }]}
-                    >
-                      <Input placeholder="Введите количество" />
-                    </Form.Item>
-                  </Space>
-                </Card>
-              ))}
-              <Button
-                type="dashed"
-                onClick={() => add()}
-                block
-                icon={<PlusOutlined />}
-              >
-                Добавить элемент
-              </Button>
-            </Form.Item>
-          )}
-        </Form.List>
-      )
+      return null
     }
 
     if (fieldType === 'condition') {
@@ -344,7 +274,9 @@ function DocumentGenerator({ card, visible, onCancel, onSuccess }: DocumentGener
         {selectedTemplate && selectedTemplate.fields.length > 0 && (
           <div className={styles.fieldsSection}>
             <h4>Заполните поля:</h4>
-            {selectedTemplate.fields.map((field) => renderFieldInput(field))}
+            {selectedTemplate.fields
+              .filter((field) => field.type !== 'loop')
+              .map((field) => renderFieldInput(field))}
           </div>
         )}
 

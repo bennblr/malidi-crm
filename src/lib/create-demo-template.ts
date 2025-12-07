@@ -69,16 +69,6 @@ function createDemoDocx(): Buffer {
         <w:t>{/notes}</w:t>
       </w:r>
     </w:p>
-    <w:p>
-      <w:r>
-        <w:t>Список позиций:</w:t>
-      </w:r>
-    </w:p>
-    <w:p>
-      <w:r>
-        <w:t>{#items}- {name}: {quantity} шт.{/items}</w:t>
-      </w:r>
-    </w:p>
   </w:body>
 </w:document>`
 
@@ -185,7 +175,6 @@ export async function createDemoTemplate(): Promise<void> {
       { name: 'shipping_date', type: 'simple' },
       { name: 'execution_deadline', type: 'simple' },
       { name: 'notes', type: 'condition' },
-      { name: 'items', type: 'loop' },
     ]
 
     // Сохраняем в БД
