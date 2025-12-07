@@ -126,7 +126,7 @@ function createDemoDocx(): Buffer {
 }
 
 /**
- * Создает демонстрационный шаблон в БД
+ * Создает или восстанавливает демонстрационный шаблон
  */
 export async function createDemoTemplate(): Promise<void> {
   try {
@@ -136,8 +136,32 @@ export async function createDemoTemplate(): Promise<void> {
     })
 
     if (existing) {
-      console.log('Demo template already exists')
-      return
+      // Проверяем, существует ли файл
+      const fs = await import('fs/promises')
+      try {
+        await fs.access(existing.filePath)
+        console.log('Demo template already exists and file is present')
+        return
+      } catch (error) {
+        // Файл не существует, пересоздаем его
+        console.log('Demo template exists but file is missing, recreating file...')
+        const demoBuffer = createDemoDocx()
+        await ensureDirectoriesExist()
+        
+        // Сохраняем файл заново
+        const filePath = await saveTemplate(demoBuffer, existing.fileName)
+        
+        // Обновляем путь в БД, если он изменился
+        if (filePath !== existing.filePath) {
+          await prisma.documentTemplate.update({
+            where: { id: existing.id },
+            data: { filePath },
+          })
+        }
+        
+        console.log('✅ Demo template file recreated successfully')
+        return
+      }
     }
 
     // Получаем системного пользователя

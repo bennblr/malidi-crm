@@ -24,6 +24,26 @@ export async function GET(
       return NextResponse.json({ error: 'Template not found' }, { status: 404 })
     }
 
+    // Если это демо-шаблон и файл отсутствует, пересоздаем его
+    if (template.name === 'Демонстрационный шаблон') {
+      try {
+        await fs.access(template.filePath)
+      } catch {
+        // Файл отсутствует, пересоздаем демо-шаблон
+        const { createDemoTemplate } = await import('@/lib/create-demo-template')
+        await createDemoTemplate()
+        
+        // Обновляем данные шаблона из БД
+        const updatedTemplate = await prisma.documentTemplate.findUnique({
+          where: { id: params.id },
+        })
+        
+        if (updatedTemplate) {
+          Object.assign(template, updatedTemplate)
+        }
+      }
+    }
+
     // Проверяем существование файла
     let finalFilePath = template.filePath
     
