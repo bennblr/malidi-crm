@@ -135,15 +135,28 @@ export async function createDemoTemplate(): Promise<void> {
       // Сохраняем файл заново
       const filePath = await saveTemplate(demoBuffer, existing.fileName)
       
-      // Обновляем путь в БД, если он изменился
-      if (filePath !== existing.filePath) {
-        await prisma.documentTemplate.update({
-          where: { id: existing.id },
-          data: { filePath },
-        })
-      }
+      // Поля шаблона (без циклов)
+      const fields = [
+        { name: 'client_name', type: 'simple' },
+        { name: 'organization', type: 'simple' },
+        { name: 'delivery_address', type: 'simple' },
+        { name: 'contacts', type: 'simple' },
+        { name: 'instruments', type: 'simple' },
+        { name: 'shipping_date', type: 'simple' },
+        { name: 'execution_deadline', type: 'simple' },
+        { name: 'notes', type: 'condition' },
+      ]
       
-      console.log('✅ Demo template file recreated successfully with updated structure')
+      // Обновляем шаблон в БД: файл и поля (удаляем циклы)
+      await prisma.documentTemplate.update({
+        where: { id: existing.id },
+        data: {
+          filePath,
+          fields: JSON.stringify(fields),
+        },
+      })
+      
+      console.log('✅ Demo template file and fields updated successfully (loops removed)')
       return
     }
 

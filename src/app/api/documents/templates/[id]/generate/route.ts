@@ -85,12 +85,13 @@ export async function GET(
       ...queryData,
     }
 
-    // Обрабатываем циклы - если поле цикла не передано, создаем пустой массив
-    // Это предотвращает ошибку "Unopened loop"
+    // Обрабатываем поля шаблона (циклы отключены)
     const templateFields = template.fields ? (typeof template.fields === 'string' ? JSON.parse(template.fields) : template.fields) : []
     templateFields.forEach((field: { name: string; type: string }) => {
-      if (field.type === 'loop' && !templateData[field.name]) {
-        templateData[field.name] = []
+      // Удаляем данные циклов (циклы отключены)
+      if (field.type === 'loop') {
+        delete templateData[field.name]
+        return
       }
       // Для условий передаем false, если не указано
       if (field.type === 'condition' && templateData[field.name] === undefined) {
