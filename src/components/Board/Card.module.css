@@ -75,6 +75,14 @@
   word-break: break-word;
 }
 
+.serialNumber {
+  margin: 4px 0;
+  font-size: 12px;
+  color: #1890ff;
+  font-weight: 600;
+  word-break: break-word;
+}
+
 .order {
   margin: 4px 0;
   font-size: 12px;

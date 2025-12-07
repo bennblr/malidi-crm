@@ -132,6 +132,32 @@ function Card({ card }: CardProps) {
     return days
   }
 
+  // Извлекаем серийные номера из поля instruments
+  const getSerialNumbers = () => {
+    if (!card.instruments) return []
+    
+    const serialNumbers: string[] = []
+    const lines = card.instruments.split('\n')
+    
+    for (const line of lines) {
+      // Ищем паттерны: "S/N: 10505217", "S/N 10505217", "Серийный номер: 10505217", или просто цифры
+      const patterns = [
+        /(?:S\/N|S\.N\.|Серийный номер|С\/Н)[:\s]*(\d+)/i,
+        /\b(\d{6,})\b/, // Ищем последовательности из 6+ цифр
+      ]
+      
+      for (const pattern of patterns) {
+        const match = line.match(pattern)
+        if (match && match[1]) {
+          serialNumbers.push(match[1])
+          break
+        }
+      }
+    }
+    
+    return serialNumbers
+  }
+
   const isDeadlineExpired =
     card.executionDeadline && new Date() > new Date(card.executionDeadline)
 
@@ -167,6 +193,11 @@ function Card({ card }: CardProps) {
             <span className={styles.cardId}>#{card.id.slice(-8)}</span>
           </div>
           <h4 className={styles.title}>{card.organization}</h4>
+          {getSerialNumbers().length > 0 && (
+            <p className={styles.serialNumber}>
+              S/N: {getSerialNumbers().join(', ')}
+            </p>
+          )}
           <p className={styles.address}>{card.deliveryAddress}</p>
           <p className={styles.contacts}>{card.contacts}</p>
           {card.postalOrder && (
