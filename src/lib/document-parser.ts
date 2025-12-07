@@ -131,6 +131,7 @@ export async function generateDocument(
         start: '{',
         end: '}',
       },
+      nullGetter: () => '', // Возвращаем пустую строку для отсутствующих значений
     })
 
     // Подготавливаем данные для docxtemplater
@@ -144,9 +145,43 @@ export async function generateDocument(
         delete processedData[key]
       }
     }
+    
+    // Проверяем XML на наличие всех тегов и добавляем пустые значения для отсутствующих
+    try {
+      const xmlFile = zip.files['word/document.xml']
+      if (xmlFile) {
+        const xml = xmlFile.asText()
+        // Ищем все простые теги {field_name}
+        const simpleTagPattern = /\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g
+        let match
+        while ((match = simpleTagPattern.exec(xml)) !== null) {
+          const fieldName = match[1]
+          // Пропускаем специальные теги docxtemplater
+          if (fieldName.startsWith('#') || fieldName.startsWith('?') || fieldName.startsWith('/')) {
+            continue
+          }
+          // Если тег не найден в данных, добавляем пустую строку
+          if (processedData[fieldName] === undefined) {
+            processedData[fieldName] = ''
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking template tags:', error)
+      // Продолжаем работу
+    }
 
     // Заполняем шаблон данными
-    doc.render(processedData)
+    try {
+      doc.render(processedData)
+    } catch (renderError: any) {
+      console.error('Docxtemplater render error:', renderError)
+      // Если ошибка рендеринга, пробуем с минимальными данными
+      if (renderError.properties && renderError.properties.errors) {
+        throw renderError
+      }
+      throw renderError
+    }
 
     // Получаем сгенерированный документ
     const generatedZip = doc.getZip().generate({
