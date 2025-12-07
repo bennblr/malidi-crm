@@ -99,6 +99,28 @@ export async function generateDocument(
 ): Promise<Buffer> {
   try {
     const zip = new PizZip(templateBuffer)
+    
+    // Удаляем теги циклов из XML шаблона перед рендерингом
+    try {
+      const xmlFile = zip.files['word/document.xml']
+      if (xmlFile) {
+        let xml = xmlFile.asText()
+        
+        // Удаляем все теги циклов из XML
+        // Паттерн для поиска циклов: {#field}...{/field}
+        // Удаляем открывающие теги циклов
+        xml = xml.replace(/\{#([a-zA-Z_][a-zA-Z0-9_]*)\}/g, '')
+        // Удаляем закрывающие теги циклов
+        xml = xml.replace(/\{\/([a-zA-Z_][a-zA-Z0-9_]*)\}/g, '')
+        
+        // Обновляем XML в zip
+        zip.file('word/document.xml', xml)
+      }
+    } catch (error) {
+      console.error('Error removing loop tags from XML:', error)
+      // Продолжаем работу, даже если не удалось удалить теги
+    }
+    
     const doc = new Docxtemplater(zip, {
       paragraphLoop: true,
       linebreaks: true,
@@ -112,36 +134,12 @@ export async function generateDocument(
     const processedData: Record<string, any> = { ...data }
     
     // Удаляем все данные циклов (циклы отключены)
-    // Ищем все ключи, которые могут быть циклами, и удаляем их
     for (const key in processedData) {
       const value = processedData[key]
       // Если это массив, удаляем его (циклы отключены)
       if (Array.isArray(value)) {
         delete processedData[key]
       }
-    }
-    
-    // Проверяем XML шаблона на наличие тегов циклов и передаем пустые массивы
-    // Это предотвращает ошибку "Unopened loop"
-    try {
-      const xml = zip.files['word/document.xml']?.asText()
-      if (xml) {
-        // Ищем все теги циклов в XML
-        const loopPattern = /\{#([a-zA-Z_][a-zA-Z0-9_]*)\}/g
-        let match
-        const foundLoops = new Set<string>()
-        while ((match = loopPattern.exec(xml)) !== null) {
-          const loopFieldName = match[1]
-          foundLoops.add(loopFieldName)
-        }
-        
-        // Для всех найденных циклов передаем пустой массив
-        foundLoops.forEach((loopFieldName) => {
-          processedData[loopFieldName] = []
-        })
-      }
-    } catch (error) {
-      // Игнорируем ошибки при чтении XML
     }
 
     // Заполняем шаблон данными
