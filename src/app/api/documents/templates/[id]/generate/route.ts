@@ -108,8 +108,8 @@ export async function GET(
     })
 
     // Возвращаем файл для скачивания
-    // Преобразуем Buffer в ArrayBuffer для NextResponse
-    return new NextResponse(generatedBuffer.buffer.slice(generatedBuffer.byteOffset, generatedBuffer.byteOffset + generatedBuffer.byteLength), {
+    // Преобразуем Buffer в Uint8Array для NextResponse
+    return new NextResponse(new Uint8Array(generatedBuffer), {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'Content-Disposition': `attachment; filename="${fileName}"`,
