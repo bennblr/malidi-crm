@@ -72,8 +72,16 @@ export async function POST(request: NextRequest) {
     // Это предотвращает ошибку "Unopened loop"
     const templateFields = template.fields ? (typeof template.fields === 'string' ? JSON.parse(template.fields) : template.fields) : []
     templateFields.forEach((field: { name: string; type: string }) => {
-      if (field.type === 'loop' && !templateData[field.name]) {
-        templateData[field.name] = []
+      if (field.type === 'loop') {
+        // Убеждаемся, что цикл - это массив
+        if (!templateData[field.name] || !Array.isArray(templateData[field.name])) {
+          templateData[field.name] = []
+        } else {
+          // Фильтруем пустые элементы
+          templateData[field.name] = templateData[field.name].filter((item: any) => 
+            item && typeof item === 'object' && (item.name || item.quantity || Object.values(item).some(v => v))
+          )
+        }
       }
       // Для условий передаем false, если не указано
       if (field.type === 'condition' && templateData[field.name] === undefined) {
