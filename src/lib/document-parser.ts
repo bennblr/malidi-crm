@@ -100,27 +100,32 @@ export async function generateDocument(
   try {
     const zip = new PizZip(templateBuffer)
     
-    // Удаляем теги циклов из XML шаблона перед рендерингом
+    // Удаляем все проблемные теги из XML шаблона перед рендерингом
     try {
       const xmlFile = zip.files['word/document.xml']
       if (xmlFile) {
         let xml = xmlFile.asText()
         
         // Удаляем все теги циклов из XML
-        // Паттерн для поиска циклов: {#field}...{/field}
-        // Удаляем открывающие теги циклов (может быть с пробелами)
+        // Удаляем открывающие теги циклов {#field}
         xml = xml.replace(/\{#\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}/g, '')
-        // Удаляем закрывающие теги циклов (может быть с пробелами)
+        // Удаляем закрывающие теги циклов {/field}
         xml = xml.replace(/\{\/\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}/g, '')
         
-        // Также удаляем содержимое между тегами циклов, если оно осталось
-        // Это дополнительная защита на случай, если структура XML нестандартная
+        // Удаляем все теги условий {?field} и {/field} для условий
+        xml = xml.replace(/\{\?\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}/g, '')
+        
+        // Удаляем любые оставшиеся проблемные конструкции
+        // Удаляем теги, которые могут вызвать ошибки
+        xml = xml.replace(/\{[^}]*error[^}]*\}/gi, '')
+        xml = xml.replace(/\{[^}]*Error[^}]*\}/g, '')
         
         // Обновляем XML в zip
         zip.file('word/document.xml', xml)
+        console.log('XML cleaned, removed loop and condition tags')
       }
     } catch (error) {
-      console.error('Error removing loop tags from XML:', error)
+      console.error('Error removing tags from XML:', error)
       // Продолжаем работу, даже если не удалось удалить теги
     }
     
@@ -132,6 +137,7 @@ export async function generateDocument(
         end: '}',
       },
       nullGetter: () => '', // Возвращаем пустую строку для отсутствующих значений
+      errorLogging: false, // Отключаем логирование ошибок в консоль
     })
 
     // Подготавливаем данные для docxtemplater
@@ -154,32 +160,92 @@ export async function generateDocument(
         // Ищем все простые теги {field_name}
         const simpleTagPattern = /\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g
         let match
+        const foundTags = new Set<string>()
         while ((match = simpleTagPattern.exec(xml)) !== null) {
           const fieldName = match[1]
           // Пропускаем специальные теги docxtemplater
           if (fieldName.startsWith('#') || fieldName.startsWith('?') || fieldName.startsWith('/')) {
             continue
           }
-          // Если тег не найден в данных, добавляем пустую строку
-          if (processedData[fieldName] === undefined) {
+          foundTags.add(fieldName)
+        }
+        
+        // Для всех найденных тегов добавляем пустую строку, если значение отсутствует
+        foundTags.forEach((fieldName) => {
+          if (processedData[fieldName] === undefined || processedData[fieldName] === null) {
             processedData[fieldName] = ''
           }
-        }
+          // Убеждаемся, что значение - строка
+          if (typeof processedData[fieldName] !== 'string') {
+            processedData[fieldName] = String(processedData[fieldName] || '')
+          }
+        })
+        
+        console.log('Found tags in template:', Array.from(foundTags))
+        console.log('Processed data keys:', Object.keys(processedData))
       }
     } catch (error) {
       console.error('Error checking template tags:', error)
       // Продолжаем работу
     }
 
-    // Заполняем шаблон данными
+    // Заполняем шаблон данными с обработкой ошибок
     try {
       doc.render(processedData)
     } catch (renderError: any) {
       console.error('Docxtemplater render error:', renderError)
-      // Если ошибка рендеринга, пробуем с минимальными данными
+      console.error('Render error properties:', renderError.properties)
+      
+      // Если ошибка связана с отсутствующими тегами, пробуем еще раз с пустыми значениями
       if (renderError.properties && renderError.properties.errors) {
-        throw renderError
+        const errors = renderError.properties.errors
+        const missingTags = errors
+          .filter((e: any) => e.message && e.message.includes('not found'))
+          .map((e: any) => {
+            const match = e.message?.match(/\{([^}]+)\}/)
+            return match ? match[1] : null
+          })
+          .filter(Boolean)
+        
+        if (missingTags.length > 0) {
+          console.log('Adding missing tags with empty values:', missingTags)
+          missingTags.forEach((tag: string) => {
+            processedData[tag] = ''
+          })
+          
+          // Пробуем еще раз с обновленными данными
+          const newZip = new PizZip(templateBuffer)
+          // Удаляем теги циклов из нового zip
+          try {
+            const xmlFile = newZip.files['word/document.xml']
+            if (xmlFile) {
+              let xml = xmlFile.asText()
+              xml = xml.replace(/\{#\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}/g, '')
+              xml = xml.replace(/\{\/\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}/g, '')
+              xml = xml.replace(/\{\?\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}/g, '')
+              newZip.file('word/document.xml', xml)
+            }
+          } catch (e) {
+            // Игнорируем ошибки
+          }
+          
+          const newDoc = new Docxtemplater(newZip, {
+            paragraphLoop: true,
+            linebreaks: true,
+            delimiters: { start: '{', end: '}' },
+            nullGetter: () => '',
+            errorLogging: false,
+          })
+          
+          newDoc.render(processedData)
+          const generatedZip = newDoc.getZip().generate({
+            type: 'nodebuffer',
+            compression: 'DEFLATE',
+          })
+          return Buffer.from(generatedZip)
+        }
       }
+      
       throw renderError
     }
 

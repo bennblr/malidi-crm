@@ -25,12 +25,16 @@ export async function GET(
     // Читаем файл
     const fileBuffer = await readDocument(document.filePath)
 
+    // Кодируем имя файла для заголовка Content-Disposition (RFC 5987)
+    const encodedFileName = encodeURIComponent(document.fileName)
+    const contentDisposition = `attachment; filename="${document.fileName}"; filename*=UTF-8''${encodedFileName}`
+
     // Возвращаем файл для скачивания
     // Преобразуем Buffer в Uint8Array для NextResponse
     return new NextResponse(new Uint8Array(fileBuffer), {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'Content-Disposition': `attachment; filename="${document.fileName}"`,
+        'Content-Disposition': contentDisposition,
       },
     })
   } catch (error) {
