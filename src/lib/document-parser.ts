@@ -91,6 +91,89 @@ export async function parseTemplateFields(fileBuffer: Buffer): Promise<TemplateF
 }
 
 /**
+ * Удаляет сообщения об ошибках из сгенерированного документа
+ */
+function cleanErrorMessages(docBuffer: Buffer): Buffer {
+  try {
+    const zip = new PizZip(docBuffer)
+    const xmlFile = zip.files['word/document.xml']
+    
+    if (xmlFile) {
+      let xml = xmlFile.asText()
+      
+      // Сохраняем оригинальный XML для отладки
+      const originalXml = xml
+      
+      // Список фраз, которые нужно удалить (точные совпадения)
+      const errorPhrases = [
+        'Internal server error',
+        'Internal Server Error',
+        'INTERNAL SERVER ERROR',
+        'error',
+        'Error',
+        'ERROR',
+        'not found',
+        'Not found',
+        'NOT FOUND',
+        'undefined',
+        'Undefined',
+        'UNDEFINED',
+        'null',
+        'Null',
+        'NULL',
+        'Unopened loop',
+        'Unopened Loop',
+        'UNOPENED LOOP',
+        'Missing closing tag',
+        'Missing Closing Tag',
+        'MISSING CLOSING TAG',
+      ]
+      
+      // Удаляем каждую фразу из XML
+      errorPhrases.forEach((phrase) => {
+        // Удаляем из текстовых узлов <w:t>
+        xml = xml.replace(
+          new RegExp(`(<w:t[^>]*>)([^<]*?)${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^<]*?)(</w:t>)`, 'gi'),
+          (match, openTag, before, after, closeTag) => {
+            const newText = (before + after).trim()
+            return newText ? `${openTag}${newText}${closeTag}` : ''
+          }
+        )
+        
+        // Удаляем целые параграфы, которые содержат только ошибки
+        xml = xml.replace(
+          new RegExp(`<w:p[^>]*>\\s*<w:r[^>]*>\\s*<w:t[^>]*>[^<]*${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^<]*</w:t>\\s*</w:r>\\s*</w:p>`, 'gi'),
+          ''
+        )
+      })
+      
+      // Удаляем пустые параграфы
+      xml = xml.replace(/<w:p[^>]*>\s*<\/w:p>/g, '')
+      xml = xml.replace(/<w:p[^>]*><w:r[^>]*><w:t[^>]*>\s*<\/w:t><\/w:r><\/w:p>/g, '')
+      
+      // Проверяем, изменился ли XML
+      if (xml !== originalXml) {
+        console.log('Cleaned error messages from document XML')
+      }
+      
+      zip.file('word/document.xml', xml)
+      
+      const cleanedBuffer = zip.generate({
+        type: 'nodebuffer',
+        compression: 'DEFLATE',
+      })
+      
+      return Buffer.from(cleanedBuffer)
+    }
+  } catch (error) {
+    console.error('Error cleaning error messages from document:', error)
+    // Если не удалось очистить, возвращаем оригинальный буфер
+  }
+  
+  return docBuffer
+}
+
+/**
  * Генерирует документ из шаблона с данными
  */
 export async function generateDocument(
@@ -175,9 +258,21 @@ export async function generateDocument(
           if (processedData[fieldName] === undefined || processedData[fieldName] === null) {
             processedData[fieldName] = ''
           }
-          // Убеждаемся, что значение - строка
-          if (typeof processedData[fieldName] !== 'string') {
+          // Убеждаемся, что значение - строка (не объект, не массив)
+          if (typeof processedData[fieldName] === 'object') {
+            processedData[fieldName] = ''
+          } else if (typeof processedData[fieldName] !== 'string') {
             processedData[fieldName] = String(processedData[fieldName] || '')
+          }
+        })
+        
+        // Также добавляем пустые значения для всех возможных тегов, которые могут быть в шаблоне
+        // Это предотвращает появление ошибок docxtemplater
+        const allPossibleTags = ['client_name', 'organization', 'delivery_address', 'contacts', 
+          'instruments', 'postal_order', 'notes', 'shipping_date', 'execution_deadline']
+        allPossibleTags.forEach((tag) => {
+          if (processedData[tag] === undefined || processedData[tag] === null) {
+            processedData[tag] = ''
           }
         })
         
@@ -242,7 +337,9 @@ export async function generateDocument(
             type: 'nodebuffer',
             compression: 'DEFLATE',
           })
-          return Buffer.from(generatedZip)
+          
+          // Удаляем сообщения об ошибках из сгенерированного документа
+          return cleanErrorMessages(Buffer.from(generatedZip))
         }
       }
       
@@ -255,7 +352,10 @@ export async function generateDocument(
       compression: 'DEFLATE',
     })
 
-    return Buffer.from(generatedZip)
+    const generatedBuffer = Buffer.from(generatedZip)
+    
+    // Удаляем сообщения об ошибках из сгенерированного документа
+    return cleanErrorMessages(generatedBuffer)
   } catch (error: any) {
     console.error('Error generating document:', error)
     console.error('Error stack:', error.stack)

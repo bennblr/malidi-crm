@@ -70,7 +70,20 @@ export async function readTemplate(filePath: string): Promise<Buffer> {
  * Читает документ с сервера
  */
 export async function readDocument(filePath: string): Promise<Buffer> {
-  return await fs.readFile(filePath)
+  try {
+    // Проверяем существование файла
+    await fs.access(filePath)
+    const buffer = await fs.readFile(filePath)
+    if (!buffer || buffer.length === 0) {
+      throw new Error('Файл документа пуст')
+    }
+    return buffer
+  } catch (error: any) {
+    if (error.code === 'ENOENT') {
+      throw new Error(`Файл документа не найден: ${filePath}`)
+    }
+    throw new Error(`Ошибка чтения файла документа: ${error.message}`)
+  }
 }
 
 /**
