@@ -77,17 +77,32 @@ export async function POST(request: NextRequest) {
         if (!templateData[field.name] || !Array.isArray(templateData[field.name])) {
           templateData[field.name] = []
         } else {
-          // Фильтруем пустые элементы
-          templateData[field.name] = templateData[field.name].filter((item: any) => 
-            item && typeof item === 'object' && (item.name || item.quantity || Object.values(item).some(v => v))
-          )
+          // Фильтруем пустые элементы и убеждаемся, что все элементы - объекты
+          templateData[field.name] = templateData[field.name]
+            .filter((item: any) => item && typeof item === 'object')
+            .map((item: any) => {
+              // Убеждаемся, что объект имеет нужные свойства
+              const result: any = {}
+              if (item.name !== undefined) result.name = String(item.name || '')
+              if (item.quantity !== undefined) result.quantity = String(item.quantity || '')
+              // Копируем все остальные свойства
+              Object.keys(item).forEach(key => {
+                if (key !== 'name' && key !== 'quantity') {
+                  result[key] = item[key]
+                }
+              })
+              return result
+            })
         }
+        console.log(`Processed loop field ${field.name}:`, templateData[field.name])
       }
       // Для условий передаем false, если не указано
       if (field.type === 'condition' && templateData[field.name] === undefined) {
         templateData[field.name] = false
       }
     })
+    
+    console.log('Final template data:', JSON.stringify(templateData, null, 2))
 
     // Читаем шаблон
     const templateBuffer = await readTemplate(template.filePath)
