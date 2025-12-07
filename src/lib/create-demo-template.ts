@@ -76,7 +76,17 @@ function createDemoDocx(): Buffer {
     </w:p>
     <w:p>
       <w:r>
-        <w:t>{#items}- {name}: {quantity} шт.{/items}</w:t>
+        <w:t>{#items}</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:t>- {name}: {quantity} шт.</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:t>{/items}</w:t>
       </w:r>
     </w:p>
   </w:body>
@@ -126,32 +136,35 @@ export async function createDemoTemplate(): Promise<void> {
     })
 
     if (existing) {
-      // Проверяем, существует ли файл
+      // Всегда пересоздаем файл шаблона, чтобы обновить структуру XML
+      console.log('Demo template exists, recreating file with updated structure...')
       const fs = await import('fs/promises')
+      const path = await import('path')
+      
+      // Удаляем старый файл, если он существует
       try {
-        await fs.access(existing.filePath)
-        console.log('Demo template already exists and file is present')
-        return
+        await fs.unlink(existing.filePath)
       } catch (error) {
-        // Файл не существует, пересоздаем его
-        console.log('Demo template exists but file is missing, recreating file...')
-        const demoBuffer = createDemoDocx()
-        await ensureDirectoriesExist()
-        
-        // Сохраняем файл заново
-        const filePath = await saveTemplate(demoBuffer, existing.fileName)
-        
-        // Обновляем путь в БД, если он изменился
-        if (filePath !== existing.filePath) {
-          await prisma.documentTemplate.update({
-            where: { id: existing.id },
-            data: { filePath },
-          })
-        }
-        
-        console.log('✅ Demo template file recreated successfully')
-        return
+        // Игнорируем ошибку, если файл не существует
       }
+      
+      // Создаем новый файл с правильной структурой
+      const demoBuffer = createDemoDocx()
+      await ensureDirectoriesExist()
+      
+      // Сохраняем файл заново
+      const filePath = await saveTemplate(demoBuffer, existing.fileName)
+      
+      // Обновляем путь в БД, если он изменился
+      if (filePath !== existing.filePath) {
+        await prisma.documentTemplate.update({
+          where: { id: existing.id },
+          data: { filePath },
+        })
+      }
+      
+      console.log('✅ Demo template file recreated successfully with updated structure')
+      return
     }
 
     // Получаем системного пользователя
