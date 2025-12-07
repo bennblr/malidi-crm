@@ -63,10 +63,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Объединяем данные карточки с переданными данными
-    const templateData = {
+    const templateData: Record<string, any> = {
       ...cardData,
       ...data,
     }
+
+    // Обрабатываем циклы - если поле цикла не передано, создаем пустой массив
+    // Это предотвращает ошибку "Unopened loop"
+    const templateFields = template.fields ? (typeof template.fields === 'string' ? JSON.parse(template.fields) : template.fields) : []
+    templateFields.forEach((field: { name: string; type: string }) => {
+      if (field.type === 'loop' && !templateData[field.name]) {
+        templateData[field.name] = []
+      }
+      // Для условий передаем false, если не указано
+      if (field.type === 'condition' && templateData[field.name] === undefined) {
+        templateData[field.name] = false
+      }
+    })
 
     // Читаем шаблон
     const templateBuffer = await readTemplate(template.filePath)

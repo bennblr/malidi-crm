@@ -107,6 +107,43 @@ function DocumentGenerator({ card, visible, onCancel, onSuccess }: DocumentGener
       const values = await form.validateFields()
       setGenerating(true)
 
+      // Обрабатываем данные для циклов - преобразуем строки в массивы объектов
+      const processedData: Record<string, any> = { ...values }
+      
+      if (selectedTemplate) {
+        selectedTemplate.fields.forEach((field) => {
+          if (field.type === 'loop' && processedData[field.name]) {
+            const value = processedData[field.name]
+            if (typeof value === 'string' && value.trim()) {
+              // Разбиваем строку на массив объектов
+              // Формат: каждая строка = один элемент
+              const lines = value.split('\n').filter(line => line.trim())
+              processedData[field.name] = lines.map((line) => {
+                // Пытаемся распарсить как "name: quantity" или просто "name"
+                const parts = line.split(':').map(p => p.trim())
+                if (parts.length >= 2) {
+                  return {
+                    name: parts[0],
+                    quantity: parts.slice(1).join(':'),
+                  }
+                }
+                return { name: line, quantity: '' }
+              })
+            } else if (!value) {
+              // Если поле пустое, передаем пустой массив
+              processedData[field.name] = []
+            }
+          }
+          // Для условий преобразуем строку в boolean
+          if (field.type === 'condition' && processedData[field.name] !== undefined) {
+            const value = processedData[field.name]
+            if (typeof value === 'string') {
+              processedData[field.name] = value === 'true' || value === '1' || value.toLowerCase() === 'да'
+            }
+          }
+        })
+      }
+
       const response = await fetch('/api/documents/generate', {
         method: 'POST',
         headers: {
@@ -115,7 +152,7 @@ function DocumentGenerator({ card, visible, onCancel, onSuccess }: DocumentGener
         body: JSON.stringify({
           templateId: selectedTemplate?.id,
           cardId: card?.id,
-          data: values,
+          data: processedData,
         }),
       })
 

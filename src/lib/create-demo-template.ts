@@ -15,6 +15,7 @@ function createDemoDocx(): Buffer {
   const zip = new PizZip()
   
   // Минимальный XML для Word документа с тегами docxtemplater
+  // Важно: циклы и условия должны быть в отдельных параграфах
   const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <w:body>
@@ -55,7 +56,17 @@ function createDemoDocx(): Buffer {
     </w:p>
     <w:p>
       <w:r>
-        <w:t>{?notes}Примечания: {notes}{/notes}</w:t>
+        <w:t>{?notes}</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:t>Примечания: {notes}</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:t>{/notes}</w:t>
       </w:r>
     </w:p>
     <w:p>
@@ -65,7 +76,17 @@ function createDemoDocx(): Buffer {
     </w:p>
     <w:p>
       <w:r>
-        <w:t>{#items}- {name}: {quantity} шт.{/items}</w:t>
+        <w:t>{#items}</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:t>- {name}: {quantity} шт.</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:t>{/items}</w:t>
       </w:r>
     </w:p>
   </w:body>

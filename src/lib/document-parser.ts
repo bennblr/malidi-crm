@@ -108,8 +108,41 @@ export async function generateDocument(
       },
     })
 
+    // Подготавливаем данные для docxtemplater
+    // Для циклов нужно передавать массив, а не строку
+    const processedData: Record<string, any> = { ...data }
+    
+    // Обрабатываем циклы - если передана строка, пытаемся распарсить как JSON или разбить по строкам
+    for (const key in processedData) {
+      const value = processedData[key]
+      // Если это поле, которое может быть циклом (начинается с # в шаблоне)
+      // и передано как строка, пытаемся преобразовать
+      if (typeof value === 'string' && value.includes('\n')) {
+        // Если строка содержит переносы строк, разбиваем на массив объектов
+        // Формат: "name1: quantity1\nname2: quantity2"
+        try {
+          const lines = value.split('\n').filter(line => line.trim())
+          if (lines.length > 0) {
+            // Пытаемся создать массив объектов для цикла
+            processedData[key] = lines.map((line, index) => {
+              const parts = line.split(':')
+              if (parts.length >= 2) {
+                return {
+                  name: parts[0].trim(),
+                  quantity: parts.slice(1).join(':').trim(),
+                }
+              }
+              return { name: line.trim(), quantity: '' }
+            })
+          }
+        } catch (e) {
+          // Оставляем как есть, если не удалось распарсить
+        }
+      }
+    }
+
     // Заполняем шаблон данными
-    doc.render(data)
+    doc.render(processedData)
 
     // Получаем сгенерированный документ
     const generatedZip = doc.getZip().generate({

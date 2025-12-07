@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { observer } from 'mobx-react-lite'
 import { Tabs, Table, Button, Space, Tag, message, Popconfirm, Modal, Form, Input, Card, Collapse, Typography, Alert } from 'antd'
-import { FileTextOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, InfoCircleOutlined, CodeOutlined } from '@ant-design/icons'
+import { FileTextOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, InfoCircleOutlined, CodeOutlined, FileDownloadOutlined } from '@ant-design/icons'
 import TemplateUpload from '@/components/Documents/TemplateUpload'
 import DocumentGenerator from '@/components/Documents/DocumentGenerator'
 import dayjs from '@/lib/dayjs-config'
@@ -126,6 +126,25 @@ function DocumentsPage() {
     }
   }
 
+  const handleDownloadTemplate = async (templateId: string, fileName: string) => {
+    try {
+      const response = await fetch(`/api/documents/templates/${templateId}/download`)
+      if (!response.ok) throw new Error('Ошибка скачивания шаблона')
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      message.success('Шаблон успешно скачан')
+    } catch (error) {
+      message.error('Ошибка скачивания шаблона')
+    }
+  }
+
   const templatesColumns = [
     {
       title: 'Название',
@@ -190,6 +209,14 @@ function DocumentsPage() {
             }}
           >
             Создать
+          </Button>
+          <Button
+            size="small"
+            icon={<FileDownloadOutlined />}
+            onClick={() => handleDownloadTemplate(record.id, record.fileName)}
+            title="Скачать шаблон"
+          >
+            Скачать
           </Button>
           <Button
             size="small"
