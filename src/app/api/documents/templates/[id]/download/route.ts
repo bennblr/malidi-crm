@@ -90,8 +90,12 @@ export async function GET(
     const fileBuffer = await readTemplate(finalFilePath)
 
     // Кодируем имя файла для заголовка Content-Disposition (RFC 5987)
+    // Создаем ASCII-совместимое имя файла (без кириллицы)
+    const asciiFileName = template.fileName.replace(/[^\x00-\x7F]/g, '_') // Заменяем не-ASCII символы на _
     const encodedFileName = encodeURIComponent(template.fileName)
-    const contentDisposition = `attachment; filename="${template.fileName}"; filename*=UTF-8''${encodedFileName}`
+    
+    // Используем только ASCII имя в основной части, кириллицу только в filename*
+    const contentDisposition = `attachment; filename="${asciiFileName}"; filename*=UTF-8''${encodedFileName}`
 
     // Возвращаем файл для скачивания
     // Преобразуем Buffer в Uint8Array для NextResponse
