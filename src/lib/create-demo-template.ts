@@ -74,19 +74,9 @@ function createDemoDocx(): Buffer {
         <w:t>Список позиций:</w:t>
       </w:r>
     </w:p>
-    <w:p w:rsidR="00000000" w:rsidRDefault="00000000">
+    <w:p>
       <w:r>
-        <w:t>{#items}</w:t>
-      </w:r>
-    </w:p>
-    <w:p w:rsidR="00000000" w:rsidRDefault="00000000">
-      <w:r>
-        <w:t>- {name}: {quantity} шт.</w:t>
-      </w:r>
-    </w:p>
-    <w:p w:rsidR="00000000" w:rsidRDefault="00000000">
-      <w:r>
-        <w:t>{/items}</w:t>
+        <w:t>{#items}- {name}: {quantity} шт.{/items}</w:t>
       </w:r>
     </w:p>
   </w:body>
