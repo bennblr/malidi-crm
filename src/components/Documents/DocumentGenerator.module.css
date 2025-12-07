@@ -1,0 +1,12 @@
+.fieldsSection {
+  margin-top: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.noFields {
+  color: #999;
+  text-align: center;
+  padding: 20px;
+}
+

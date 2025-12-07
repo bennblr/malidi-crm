@@ -22,6 +22,6 @@ export default withAuth(
 )
 
 export const config = {
-  matcher: ['/board/:path*', '/settings/:path*', '/users/:path*'],
+  matcher: ['/board/:path*', '/closed/:path*', '/documents/:path*', '/settings/:path*', '/users/:path*'],
 }
 

@@ -24,6 +24,8 @@ model User {
   updatedAt DateTime @updatedAt
 
   createdCards Card[]
+  templates   DocumentTemplate[]
+  documents   GeneratedDocument[]
 }
 
 model Priority {
@@ -74,6 +76,7 @@ model Card {
   column   Column      @relation(fields: [columnId], references: [id])
   user     User        @relation(fields: [userId], references: [id])
   history  CardHistory[]
+  documents GeneratedDocument[]
 }
 
 model SystemSettings {
@@ -96,5 +99,35 @@ model CardHistory {
   createdAt     DateTime  @default(now())
 
   card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
+
+model DocumentTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  fileName    String   // Имя файла шаблона на сервере
+  filePath    String   // Путь к файлу на сервере
+  fields      String   // JSON массив найденных полей в шаблоне
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user       User                @relation(fields: [createdBy], references: [id])
+  documents  GeneratedDocument[]
+}
+
+model GeneratedDocument {
+  id          String   @id @default(cuid())
+  templateId  String
+  cardId      String?  // Привязка к карточке (опционально)
+  fileName    String   // Имя сгенерированного файла
+  filePath    String   // Путь к файлу на сервере
+  data        String   // JSON с данными, использованными для генерации
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  template DocumentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  card     Card?            @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  user     User             @relation(fields: [createdBy], references: [id])
 }
 
