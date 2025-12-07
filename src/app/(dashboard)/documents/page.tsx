@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { observer } from 'mobx-react-lite'
 import { Tabs, Table, Button, Space, Tag, message, Popconfirm, Modal, Form, Input, Card, Collapse, Typography, Alert } from 'antd'
-import { FileTextOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, InfoCircleOutlined, CodeOutlined, FileDownloadOutlined } from '@ant-design/icons'
+import { FileTextOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, InfoCircleOutlined, CodeOutlined } from '@ant-design/icons'
 import TemplateUpload from '@/components/Documents/TemplateUpload'
 import DocumentGenerator from '@/components/Documents/DocumentGenerator'
 import dayjs from '@/lib/dayjs-config'
@@ -212,7 +212,7 @@ function DocumentsPage() {
           </Button>
           <Button
             size="small"
-            icon={<FileDownloadOutlined />}
+            icon={<DownloadOutlined />}
             onClick={() => handleDownloadTemplate(record.id, record.fileName)}
             title="Скачать шаблон"
           >
