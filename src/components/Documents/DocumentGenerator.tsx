@@ -66,43 +66,43 @@ function DocumentGenerator({ card, visible, onCancel, onSuccess }: DocumentGener
         if (field.type === 'loop') {
           return
         }
-          switch (field.name.toLowerCase()) {
-            case 'client_name':
-            case 'organization':
-              initialValues[field.name] = card.organization
-              break
-            case 'delivery_address':
-            case 'address':
-              initialValues[field.name] = card.deliveryAddress
-              break
-            case 'contacts':
-            case 'contact':
-              initialValues[field.name] = card.contacts
-              break
-            case 'instruments':
-            case 'instrument':
-              initialValues[field.name] = card.instruments
-              break
-            case 'postal_order':
-            case 'order':
-              initialValues[field.name] = card.postalOrder || ''
-              break
-            case 'notes':
-            case 'note':
-              initialValues[field.name] = card.notes || ''
-              break
-            case 'shipping_date':
-              initialValues[field.name] = card.shippingDate
-                ? new Date(card.shippingDate).toLocaleDateString('ru-RU')
-                : ''
-              break
-            case 'execution_deadline':
-            case 'deadline':
-              initialValues[field.name] = card.executionDeadline
-                ? new Date(card.executionDeadline).toLocaleDateString('ru-RU')
-                : ''
-              break
-          }
+        
+        switch (field.name.toLowerCase()) {
+          case 'client_name':
+          case 'organization':
+            initialValues[field.name] = card.organization
+            break
+          case 'delivery_address':
+          case 'address':
+            initialValues[field.name] = card.deliveryAddress
+            break
+          case 'contacts':
+          case 'contact':
+            initialValues[field.name] = card.contacts
+            break
+          case 'instruments':
+          case 'instrument':
+            initialValues[field.name] = card.instruments
+            break
+          case 'postal_order':
+          case 'order':
+            initialValues[field.name] = card.postalOrder || ''
+            break
+          case 'notes':
+          case 'note':
+            initialValues[field.name] = card.notes || ''
+            break
+          case 'shipping_date':
+            initialValues[field.name] = card.shippingDate
+              ? new Date(card.shippingDate).toLocaleDateString('ru-RU')
+              : ''
+            break
+          case 'execution_deadline':
+          case 'deadline':
+            initialValues[field.name] = card.executionDeadline
+              ? new Date(card.executionDeadline).toLocaleDateString('ru-RU')
+              : ''
+            break
         }
       })
 
