@@ -78,13 +78,9 @@ function createDemoDocx(): Buffer {
       <w:r>
         <w:t>{#items}</w:t>
       </w:r>
-    </w:p>
-    <w:p>
       <w:r>
         <w:t>- {name}: {quantity} шт.</w:t>
       </w:r>
-    </w:p>
-    <w:p>
       <w:r>
         <w:t>{/items}</w:t>
       </w:r>
