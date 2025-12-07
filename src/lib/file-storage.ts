@@ -50,7 +50,20 @@ export async function saveDocument(fileBuffer: Buffer, fileName: string): Promis
  * Читает шаблон с сервера
  */
 export async function readTemplate(filePath: string): Promise<Buffer> {
-  return await fs.readFile(filePath)
+  try {
+    // Проверяем существование файла
+    await fs.access(filePath)
+    const buffer = await fs.readFile(filePath)
+    if (!buffer || buffer.length === 0) {
+      throw new Error('Файл шаблона пуст')
+    }
+    return buffer
+  } catch (error: any) {
+    if (error.code === 'ENOENT') {
+      throw new Error(`Файл шаблона не найден: ${filePath}`)
+    }
+    throw new Error(`Ошибка чтения файла шаблона: ${error.message}`)
+  }
 }
 
 /**

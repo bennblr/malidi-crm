@@ -157,12 +157,21 @@ export async function generateDocument(
     return Buffer.from(generatedZip)
   } catch (error: any) {
     console.error('Error generating document:', error)
+    console.error('Error stack:', error.stack)
+    console.error('Error properties:', error.properties)
+    
     if (error.properties && error.properties.errors instanceof Array) {
       const errorMessages = error.properties.errors
-        .map((e: any) => e.message)
+        .map((e: any) => e.message || String(e))
         .join(', ')
       throw new Error(`Ошибка генерации документа: ${errorMessages}`)
     }
+    
+    // Передаем оригинальное сообщение об ошибке, если оно есть
+    if (error.message) {
+      throw new Error(`Ошибка генерации документа: ${error.message}`)
+    }
+    
     throw new Error('Не удалось сгенерировать документ')
   }
 }

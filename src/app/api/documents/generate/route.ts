@@ -83,14 +83,38 @@ export async function POST(request: NextRequest) {
     })
 
     // Читаем шаблон
-    const templateBuffer = await readTemplate(template.filePath)
+    console.log('Reading template from:', template.filePath)
+    let templateBuffer: Buffer
+    try {
+      templateBuffer = await readTemplate(template.filePath)
+      console.log('Template read successfully, size:', templateBuffer.length)
+    } catch (error: any) {
+      console.error('Error reading template file:', error)
+      throw new Error(`Не удалось прочитать файл шаблона: ${error.message}`)
+    }
 
     // Генерируем документ
-    const generatedBuffer = await generateDocument(templateBuffer, templateData)
+    console.log('Generating document with data:', JSON.stringify(templateData, null, 2))
+    let generatedBuffer: Buffer
+    try {
+      generatedBuffer = await generateDocument(templateBuffer, templateData)
+      console.log('Document generated successfully, size:', generatedBuffer.length)
+    } catch (error: any) {
+      console.error('Error generating document:', error)
+      throw error
+    }
 
     // Сохраняем сгенерированный документ
     const fileName = generateFileName(`${template.name}_generated.docx`, 'doc')
-    const filePath = await saveDocument(generatedBuffer, fileName)
+    console.log('Saving document with filename:', fileName)
+    let filePath: string
+    try {
+      filePath = await saveDocument(generatedBuffer, fileName)
+      console.log('Document saved successfully to:', filePath)
+    } catch (error: any) {
+      console.error('Error saving document:', error)
+      throw new Error(`Не удалось сохранить документ: ${error.message}`)
+    }
 
     // Сохраняем метаданные в БД
     const generatedDoc = await prisma.generatedDocument.create({
@@ -125,8 +149,28 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     console.error('Error generating document:', error)
+    console.error('Error stack:', error.stack)
+    console.error('Error details:', {
+      message: error.message,
+      name: error.name,
+      properties: error.properties,
+    })
+    
+    // Возвращаем более детальную информацию об ошибке
+    let errorMessage = 'Internal server error'
+    if (error.message) {
+      errorMessage = error.message
+    } else if (error.properties && error.properties.errors instanceof Array) {
+      errorMessage = error.properties.errors
+        .map((e: any) => e.message || String(e))
+        .join(', ')
+    }
+    
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { 
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     )
   }
